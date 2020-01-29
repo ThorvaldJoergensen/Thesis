@@ -1,0 +1,6 @@
+@ONLINE{cmumocap,
+author = {CMU},
+title = {Human motion capture database},
+year = {2014},
+url = {http://mocap.cs.cmu.edu/},
+}
