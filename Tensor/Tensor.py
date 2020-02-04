@@ -38,7 +38,9 @@ print(np.array(labelList).shape)
 
 tensor = np.zeros([45, 225, minNrFrames])
 
-seq0 = None
+
+#Align all to T-pose
+seq0 = np.array([seqList[46][0,:],seqList[46][1,:],seqList[46][2,:]])
 
 for i, seq in enumerate(seqList):
     frameToTake = int(int(seq.shape[0]/3)/minNrFrames)
@@ -54,16 +56,14 @@ for i, seq in enumerate(seqList):
         frameShape[0,:] = newFrames[frame,:]
         frameShape[1,:] = newFrames[frame+1,:]
         frameShape[2,:] = newFrames[frame+2,:]
-        if seq0 is None :
-            seq0 = frameShape
-        else:
+        if (i != 46 and frame != 0):
             _, _, transform = Spatial.procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
-            Z = transform['scale']*np.transpose(frameShape)*np.matlib.repmat(transform['rotation'],5,1) + np.matlib.repmat(transform['translation'],15,1)
+            Z = np.matmul(transform['scale']*np.transpose(frameShape),transform['rotation'])
             frameShape = np.transpose(Z)
             triangle_static = seq0[:,index_inner]
             triangle_deform = frameShape[:,index_inner]
-            _,_, transform2 = Spatial.procrustes(np.transpose(triangle_deform), np.transpose(triangle_static), False, True)
-            frameShape_transformed = transform2['scale']*np.transpose(frameShape)*np.matlib.repmat(transform2['rotation'],5,1) + np.matlib.repmat(transform2['translation'],15,1)
+            _,_, transform2 = Spatial.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
+            frameShape_transformed = np.matmul(transform2['scale']*np.transpose(frameShape),transform2['rotation'])
             frameShape = np.transpose(frameShape_transformed)
             newFrames[frame,:] = frameShape[0,:]
             newFrames[frame+1,:] = frameShape[1,:]
