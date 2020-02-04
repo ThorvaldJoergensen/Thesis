@@ -55,10 +55,10 @@ for i, seq in enumerate(seqList):
         frameShape[1,:] = newFrames[frame+1,:]
         frameShape[2,:] = newFrames[frame+2,:]
         if seq0 is None :
-            seq0 = frameShape
+            seq0 = np.array([seqList[46][0,:],seqList[46][1,:],seqList[46][2,:]])
         else:
             _, _, transform = Spatial.procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
-            Z = transform['scale']*np.transpose(frameShape)*np.matlib.repmat(transform['rotation'],5,1) + np.matlib.repmat(transform['translation'],15,1)
+            Z = np.matmul(transform['scale'] * np.transpose(frameShape), transform['rotation']) + np.matlib.repmat(transform['translation'],15,1)
             frameShape = np.transpose(Z)
             triangle_static = seq0[:,index_inner]
             triangle_deform = frameShape[:,index_inner]
