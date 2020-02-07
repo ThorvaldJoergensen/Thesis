@@ -14,7 +14,7 @@ plt.plot(b[:,0], b[:,1], label="B")
 plt.plot(mtx1[:,0], mtx1[:,1], label="mtx1")
 plt.plot(mtx2[:,0], mtx2[:,1], label="mtx2")
 
-plt.plot((mtx2*np.transpose(b))[:,0], (mtx2*np.transpose(b))[:,1], label="mtx2*b")
+# plt.plot((mtx2*np.transpose(b))[:,0], (mtx2*np.transpose(b))[:,1], label="mtx2*b")
 
 plt.legend()
 plt.show()

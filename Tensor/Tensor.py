@@ -40,6 +40,8 @@ tensor = np.zeros([45, 225, minNrFrames])
 
 
 #Align all to T-pose
+
+# XXX Todo: Save t-pose as a hardcoded matrix and remove the frames from the original sequence
 seq0 = np.array([seqList[46][0,:],seqList[46][1,:],seqList[46][2,:]])
 
 for i, seq in enumerate(seqList):
@@ -88,19 +90,6 @@ print(dtensor(tensor).shape)
 
 tensor = dtensor(tensor)
 
-# U, S = hosvd(tensor, [45, 225, 128])
-
-# core_S = np.array(S)
-# U1 = U[0]
-# U2 = U[1]
-# U3 = U[2]
-
-# rowU2 = U2[0]
-# newMatrix = np.tensordot(core_S, U1, (0,1))
-# newMatrix = np.tensordot(newMatrix, rowU2, (0,0))
-# newMatrix = np.tensordot(newMatrix, U3, (0,1))
-
-# tensor = dtensor(newMatrix)
 
 def animate(array):
     xs = []
@@ -163,10 +152,11 @@ def animate(array):
 
     # Run animation with the update function and point lists
     ani = animation.FuncAnimation(fig, update, nfr, fargs=(xs,ys,zs), interval=1)
+    ani.save('../../animation.gif', writer='imagemagick', fps=30)
 
     plt.show()
 
-animate(tensor[:,0,:])
+animate(tensor[:,47,:])
 
 # Perform HOSVD and return core tensor and U matrices
 def svd(tensor):

@@ -1,0 +1,43 @@
+(1) Spatial alignment bug fix:
+Small steps! create small examples
+What is a good/bad spatial alignment?
+    Good:
+        Orientation is equal across all sequences since the direction of the action is not important
+        Make the first frame "look" forwards and have all other frames still have the information of turning
+        Generality between similar sequences, they are still comparable to the original sequence after the alignment
+            Diffirentiality between several actions, there is a clear detectable difference between a sitting and standing person
+    Bad:
+        Opposite of above??
+        If the sequence is moving forwards in the coordinate space, this would need to be kept in the aligned version
+            This is not relevant for our datasets as they are already aligned to the origin
+
+
+(2) How to visualise body shapes of different sequences?
+For manual check of temporal and spatial alignment
+How do others do it?
+    * Several "clip-outs" of frames with original vs aligned frames. e.g. frame 1,64,128 of a sequence
+    * Show animation of first 10 frames from original and aligned version
+    * Show comparison of two sequences after alignment
+
+
+(3) How do others align body shape sequences?
+In time and space?
+
+Krüger:
+    Moving root nodes to origin and orienting the root node to the same direction
+    Samples down the uniform framerate
+    "Time-warped using physics-based features"??
+
+Zhou:
+    Maximizing the correlation across the sequences
+
+Caspi:
+    Rotating the sequences
+    This case is of sequences of same object; E.g. zoomed in version of same sequence
+    Currently using some of these princibles, because we have two different sequences performed by two different subjects.
+
+(4) What kind of extensions/adaptations of DTW are available to align 3d body shapes?
+Generalized Cononical Time Warping
+Iterative Motion Warping
+Dynamic Time Warping
+Transform sequence down to a time series by taking one coordinate of one point foreach frame
