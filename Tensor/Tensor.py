@@ -152,7 +152,7 @@ def animate(array):
 
     # Run animation with the update function and point lists
     ani = animation.FuncAnimation(fig, update, nfr, fargs=(xs,ys,zs), interval=1)
-    ani.save('../../animation.gif', writer='imagemagick', fps=30)
+    #ani.save('../../animation.gif', writer='imagemagick', fps=30)
 
     plt.show()
 

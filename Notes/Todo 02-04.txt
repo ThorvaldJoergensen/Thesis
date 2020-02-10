@@ -1,3 +1,6 @@
+(0) select two actions (or if more than related):
+Start with running and walking, make it work. Can it be expanded to all others/more?
+
 (1) Spatial alignment bug fix:
 Small steps! create small examples
 What is a good/bad spatial alignment?
