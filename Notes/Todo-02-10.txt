@@ -1,0 +1,29 @@
+
+(1) find two (or more) reference papers which include information about:
+  (a) spatial alignment OR
+  (b) temporal alignment OR
+  (c) (a) and (b)
+Check how they do it. Is this reasonable?
+Do we do it like this or differently? Why?
+=> write about it
+
+Efficient Content-Based Retrieval of Motion Capture Data
+Gesture Recognition using Skeleton Data with Weighted Dynamic Time Warping
+Everything you know about Dynamic Time Warping is Wrong (refresher)
+Generalized Canonical Time Warping (refresher)
+Krüeger (refresher)
+Automatic Splicing for Hand and Body Animations (maybe not now)
+
+(2) Consider if you want to keep scale of persons or get rid of it via
+the spatial alignment
+(Or investigate both options?)
+
+Remove difference of scale because we don't know which person supplied which sequence, make them generalized.
+Start with removing, then try without removing difference of scale.
+
+(3) should some parts of the data be excluded?
+  (a) why?
+  (b) how?
+
+No, becuase we would then need to remove parts of the testing set of sequences blindly.
+Try initially to keep sequences with turning and other out of the ordinary parts in the set, test our spatial alignment and classification, if no problem then keep. Else remove the full sequences.
