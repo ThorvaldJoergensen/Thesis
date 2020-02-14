@@ -53,6 +53,7 @@ tensor = np.zeros([45, 225, minNrFrames])
 #Align all to T-pose
 
 # XXX Todo: Save t-pose as a hardcoded matrix and remove the frames from the original sequence
+# Change so we just take first frame given as seq0 for spatial align
 seq0 = np.array([seqList[46][0,:],seqList[46][1,:],seqList[46][2,:]])
 
 for i, seq in enumerate(seqList):
