@@ -203,6 +203,76 @@ def animate2(array):
 
     return ani
 
+def animate3(array1, array2):
+    xs1 = []
+    ys1 = []
+    zs1 = []
+    xs2 = []
+    ys2 = []
+    zs2 = []
+
+    nfr = int(array1.shape[1])
+
+    # Split the data into x,y,z coordinates for each frame
+    for j in range(0, array1.shape[1]):
+        for i in range(0, array1.shape[0], 3):
+            xs1.append(array1[i][j])
+            ys1.append(array1[i+1][j])
+            zs1.append(array1[i+2][j])
+            
+    # Create plot and empty points to update
+    fig, ax = plt.subplots(1, 2, sharex='col', sharey='row')
+    ax[0] = fig.add_subplot(111, projection='3d')
+    ax[1] = fig.add_subplot(111, projection='3d')
+    sct, = ax[0].plot([], [], [], "o", markersize=2)
+    sct, = ax[1].plot([], [], [], "o", markersize=2)
+    
+
+    # Update function to be called each frame
+    def update(ifrm, xa, ya, za):
+        # Clear all lines (except points)
+        ax.lines = [ax.lines[0]]
+
+        sct.set_data(xa[ifrm*15:ifrm*15+14], ya[ifrm*15:ifrm*15+14])
+        sct.set_3d_properties(za[ifrm*15:ifrm*15+14])
+        # For drawing the lines between points
+        # Right leg
+        ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+1]], [ya[ifrm*15+0], ya[ifrm*15+1]], [za[ifrm*15+0], za[ifrm*15+1]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+1], xa[ifrm*15+2]], [ya[ifrm*15+1], ya[ifrm*15+2]], [za[ifrm*15+1], za[ifrm*15+2]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+2], xa[ifrm*15+3]], [ya[ifrm*15+2], ya[ifrm*15+3]], [za[ifrm*15+2], za[ifrm*15+3]], 'steelblue', markersize=2)
+        # Left leg
+        ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+4]], [ya[ifrm*15+0], ya[ifrm*15+4]], [za[ifrm*15+0], za[ifrm*15+4]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+4], xa[ifrm*15+5]], [ya[ifrm*15+4], ya[ifrm*15+5]], [za[ifrm*15+4], za[ifrm*15+5]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+5], xa[ifrm*15+6]], [ya[ifrm*15+5], ya[ifrm*15+6]], [za[ifrm*15+5], za[ifrm*15+6]], 'steelblue', markersize=2)
+        # Spine
+        ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+7]], [ya[ifrm*15+0], ya[ifrm*15+7]], [za[ifrm*15+0], za[ifrm*15+7]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+8]], [ya[ifrm*15+7], ya[ifrm*15+8]], [za[ifrm*15+7], za[ifrm*15+8]], 'steelblue', markersize=2)
+        # Right arm
+        ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+9]], [ya[ifrm*15+7], ya[ifrm*15+9]], [za[ifrm*15+7], za[ifrm*15+9]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+9], xa[ifrm*15+10]], [ya[ifrm*15+9], ya[ifrm*15+10]], [za[ifrm*15+9], za[ifrm*15+10]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+10], xa[ifrm*15+11]], [ya[ifrm*15+10], ya[ifrm*15+11]], [za[ifrm*15+10], za[ifrm*15+11]], 'steelblue', markersize=2)
+        # Left arm
+        ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+12]], [ya[ifrm*15+7], ya[ifrm*15+12]], [za[ifrm*15+7], za[ifrm*15+12]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+12], xa[ifrm*15+13]], [ya[ifrm*15+12], ya[ifrm*15+13]], [za[ifrm*15+12], za[ifrm*15+13]], 'steelblue', markersize=2)
+        ax.plot3D([xa[ifrm*15+13], xa[ifrm*15+14]], [ya[ifrm*15+13], ya[ifrm*15+14]], [za[ifrm*15+13], za[ifrm*15+14]], 'steelblue', markersize=2)
+
+
+    # Limit coordinates for all axes
+    ax.set_xlim(30,-30)
+    ax.set_ylim(30,-30)
+    ax.set_zlim(-30,30)
+
+    # Set labels
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+
+    # Run animation with the update function and point lists
+    ani = animation.FuncAnimation(fig, update, nfr, fargs=(xs,ys,zs), interval=1)
+    #ani.save('../../animation.gif', writer='imagemagick', fps=30)
+
+    plt.show()
+
 for i, seq in enumerate(seqList[113:]):
     print(i+113)
 

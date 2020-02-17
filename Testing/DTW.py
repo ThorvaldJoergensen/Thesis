@@ -2,7 +2,7 @@ from dtw import *
 import numpy as np
 from scipy.spatial.distance import euclidean
 import matplotlib.pyplot as plt
-
+import sys
 import mpl_toolkits.mplot3d as plt3d
 import matplotlib.animation as animation
 
@@ -13,7 +13,9 @@ from dtaidistance import dtw_visualisation as dtwvis
 
 from scipy.io.matlab import loadmat
 
-import Spatial
+import Helpers
+sys.path.insert(1, '../')
+import Plotting
 
 # #DtaiDistance testing:
 # s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
@@ -104,12 +106,12 @@ def NewLength(seq, NmFrames, seq0):
         if (seq0 is None):
             seq0 = frameShape
         else:
-            _, _, transform = Spatial.procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
+            _, _, transform = Helpers.procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
             Z = np.matmul(transform['scale']*np.transpose(frameShape),transform['rotation'])
             frameShape = np.transpose(Z)
             triangle_static = seq0[:,index_inner]
             triangle_deform = frameShape[:,index_inner]
-            _,_, transform2 = Spatial.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
+            _,_, transform2 = Helpers.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
             frameShape_transformed = np.matmul(transform2['scale']*np.transpose(frameShape),transform2['rotation'])
             frameShape = np.transpose(frameShape_transformed)
             newFrames[frame,:] = frameShape[0,:]
@@ -237,75 +239,9 @@ for i in range(0,W2plot.shape[0]):
 #     step_pattern=rabinerJuangStepPattern(6, "c"))\
 #     .plot(type="twoway",offset=-2)
 
-def animate(array):
-    xs = []
-    ys = []
-    zs = []
 
-    print(array.shape)
-    nfr = int(array.shape[1])
+ani1 = Plotting.animate(W1Aligned)
 
-    # Split the data into x,y,z coordinates for each frame
-    for j in range(0, array.shape[1]):
-        for i in range(0, array.shape[0], 3):
-            xs.append(array[i][j])
-            ys.append(array[i+1][j])
-            zs.append(array[i+2][j])
-            
-    # Create plot and empty points to update
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    sct, = ax.plot([], [], [], "o", markersize=2)
+ani2 = Plotting.animate(W3Aligned)
 
-    # Update function to be called each frame
-    def update(ifrm, xa, ya, za):
-        # Clear all lines (except points)
-        ax.lines = [ax.lines[0]]
-
-        sct.set_data(xa[ifrm*15:ifrm*15+14], ya[ifrm*15:ifrm*15+14])
-        sct.set_3d_properties(za[ifrm*15:ifrm*15+14])
-        # For drawing the lines between points
-        # Right leg
-        ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+1]], [ya[ifrm*15+0], ya[ifrm*15+1]], [za[ifrm*15+0], za[ifrm*15+1]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+1], xa[ifrm*15+2]], [ya[ifrm*15+1], ya[ifrm*15+2]], [za[ifrm*15+1], za[ifrm*15+2]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+2], xa[ifrm*15+3]], [ya[ifrm*15+2], ya[ifrm*15+3]], [za[ifrm*15+2], za[ifrm*15+3]], 'steelblue', markersize=2)
-        # Left leg
-        ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+4]], [ya[ifrm*15+0], ya[ifrm*15+4]], [za[ifrm*15+0], za[ifrm*15+4]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+4], xa[ifrm*15+5]], [ya[ifrm*15+4], ya[ifrm*15+5]], [za[ifrm*15+4], za[ifrm*15+5]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+5], xa[ifrm*15+6]], [ya[ifrm*15+5], ya[ifrm*15+6]], [za[ifrm*15+5], za[ifrm*15+6]], 'steelblue', markersize=2)
-        # Spine
-        ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+7]], [ya[ifrm*15+0], ya[ifrm*15+7]], [za[ifrm*15+0], za[ifrm*15+7]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+8]], [ya[ifrm*15+7], ya[ifrm*15+8]], [za[ifrm*15+7], za[ifrm*15+8]], 'steelblue', markersize=2)
-        # Right arm
-        ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+9]], [ya[ifrm*15+7], ya[ifrm*15+9]], [za[ifrm*15+7], za[ifrm*15+9]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+9], xa[ifrm*15+10]], [ya[ifrm*15+9], ya[ifrm*15+10]], [za[ifrm*15+9], za[ifrm*15+10]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+10], xa[ifrm*15+11]], [ya[ifrm*15+10], ya[ifrm*15+11]], [za[ifrm*15+10], za[ifrm*15+11]], 'steelblue', markersize=2)
-        # Left arm
-        ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+12]], [ya[ifrm*15+7], ya[ifrm*15+12]], [za[ifrm*15+7], za[ifrm*15+12]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+12], xa[ifrm*15+13]], [ya[ifrm*15+12], ya[ifrm*15+13]], [za[ifrm*15+12], za[ifrm*15+13]], 'steelblue', markersize=2)
-        ax.plot3D([xa[ifrm*15+13], xa[ifrm*15+14]], [ya[ifrm*15+13], ya[ifrm*15+14]], [za[ifrm*15+13], za[ifrm*15+14]], 'steelblue', markersize=2)
-
-
-    # Limit coordinates for all axes
-    ax.set_xlim(30,-30)
-    ax.set_ylim(30,-30)
-    ax.set_zlim(-30,30)
-
-    # Set labels
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-
-    # Run animation with the update function and point lists
-    ani = animation.FuncAnimation(fig, update, nfr, fargs=(xs,ys,zs), interval=1)
-    #ani.save('../../animation.gif', writer='imagemagick', fps=30)
-
-    return ani
-
-ani1 = animate(W1Aligned)
-
-ani2 = animate(W3Aligned)
-
-ani1._start
-ani2._start
 plt.show()
