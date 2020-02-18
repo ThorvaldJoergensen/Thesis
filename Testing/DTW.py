@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import sys
 import mpl_toolkits.mplot3d as plt3d
 import matplotlib.animation as animation
+import math
 
 from fastdtw import fastdtw
 from dtaidistance import dtw as dtw2
@@ -16,7 +17,8 @@ from scipy.io.matlab import loadmat
 import Helpers
 sys.path.insert(1, '../')
 import Plotting
-
+sys.path.insert(1,'../Tensor')
+import AlignData
 # #DtaiDistance testing:
 # s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
 # s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
@@ -77,10 +79,99 @@ import Plotting
 # dtw(seq2, seq1, keep_internals=True, 
 #     step_pattern=rabinerJuangStepPattern(6, "c"))\
 #     .plot(type="twoway",offset=-2)
+seqList, labels, minNrFrames = Helpers.loadData()
+print(seqList.shape)
+runSeqs = seqList[36:72]
+walkSeqs = seqList[85:169]
+maxRunFrames = 0
+for i in runSeqs:
+    if int(i.shape[0]/3) > maxRunFrames:
+        maxRunFrames = int(i.shape[0]/3)
+maxWalkFrames = 0
+for i in walkSeqs:
+    if int(i.shape[0]/3) > maxWalkFrames:
+        maxWalkFrames = int(i.shape[0]/3)
+print(maxWalkFrames)
+print(maxRunFrames)
+framesToAlignTo = min(maxWalkFrames, maxRunFrames)
+Aligned = np.array([runSeqs[3],runSeqs[24],walkSeqs[2],walkSeqs[42]])
+Aligned = AlignData.spatial(Aligned)
+AlignedRightForm = []
+RightFormFull = []
+for i, x in enumerate(Aligned):
+    W1copy = np.zeros([45, int(x.shape[0]/3)])
+    for j in range(0,int(x.shape[0]/3)):
+        k = 3*j
+        shape = x[k:k+3,:]
+        points = np.zeros([45])
+        for l in range(0,15):
+            points[l*3] = shape[0][l]
+            points[(l*3)+2] = shape[1][l]
+            points[(l*3)+1] = shape[2][l]
+        W1copy[:,j] = points
+    AlignedRightForm.append(W1copy[11,:])
+    RightFormFull.append(W1copy)
+#AlignedRightForm = np.array(AlignedRightForm)
+print(dtw2.distance_matrix_fast(AlignedRightForm, parallel=True))
+sim_matrix = np.zeros([4,4])
+iPos = 0
+JPos = 0
+minDist = math.inf
+firstPath = []
+for i, x in enumerate(AlignedRightForm):
+    for j, y in enumerate(AlignedRightForm):
+        if i == j:
+            sim_matrix[i][j] = math.inf
+        else:
+            distance = dtw2.distance_fast(AlignedRightForm[j], x, window=int(min(AlignedRightForm[j].shape[0],x.shape[0])/10))
+            sim_matrix[i][j] = distance
+            if distance < minDist:
+                minDist = distance
+                iPos = i
+                JPos = j
+print(iPos)
+print(JPos)
+print(sim_matrix)
+AlignedSeqs = np.zeros([4,45,AlignedRightForm[iPos].shape[0]])
+AlignedSeqs[iPos,:,:] = RightFormFull[iPos]
+AlignedIds = {iPos}
+AlignedRightForm = np.array(AlignedRightForm)
+print(AlignedRightForm[JPos].shape)
+for g in range(0,AlignedRightForm.shape[0]-1):
+    print(int(min(AlignedRightForm[JPos].shape[0],AlignedSeqs[iPos].shape[1])/10))
+    print(AlignedSeqs[iPos,11,:].shape)
+    print(AlignedRightForm[JPos].shape)
+    _,paths = dtw2.warping_paths(AlignedRightForm[JPos], AlignedSeqs[iPos,11,:], window=int(min(AlignedRightForm[JPos].shape[0],AlignedSeqs[iPos].shape[1])/10))
+    path = np.array(dtw2.best_path(paths))
+    print(path)
+    JAligned = np.zeros([45,AlignedSeqs[iPos].shape[1]])
+    print(RightFormFull[JPos].shape)
+    for j in range(0,AlignedSeqs[iPos].shape[1]-1):
+        JAligned[:,j] = RightFormFull[JPos][:,int(path[j][0])]
+    AlignedSeqs[JPos,:,:] = JAligned
+    AlignedIds.add(JPos)
+    if g != AlignedRightForm.shape[0]-2:
+        newSim = np.zeros([len(AlignedIds),AlignedRightForm.shape[0]])
+        for f,x in enumerate(AlignedIds):
+            newSim[f] = sim_matrix[x]
+        minDist = math.inf
+        for i,x in enumerate(newSim):
+            for j,d in enumerate(newSim[i]):
+                if j in AlignedIds:
+                    continue
+                else:
+                    if newSim[i][j] < minDist:
+                        minDist = newSim[i][j]
+                        iPos = i
+                        JPos = j
 
-seq1 = loadmat('../body/data_complete/run/09_07.mat')
-seq2 = loadmat('../body/data_complete/run/16_36.mat')
-seq3 = loadmat('../body/data_complete/walk/08_02.mat')
+sim_matrix = np.array(sim_matrix)
+print(sim_matrix)
+print(runSeqs.shape)
+print(walkSeqs.shape)
+seq1 = loadmat('run/09_07.mat')
+seq2 = loadmat('run/16_36.mat')
+seq3 = loadmat('walk/08_02.mat')
 W1 = np.array(seq1.get('W'))[0][0]
 W2 = np.array(seq2.get('W'))[0][0]
 W3 = np.array(seq3.get('W'))[0][0]
@@ -197,14 +288,14 @@ NpPath = np.array(path)
 
 WSmasked = [W1Foot,W2Foot]
 
-distance, paths = dtw2.warping_paths(W3Foot, W1Foot, window=13)
+distance, paths = dtw2.warping_paths(W3Foot, W1Foot, window=int(min(W3Foot.shape[0],W1Foot.shape[0])/10), psi=5)
 print(distance)
 best = dtw2.best_path(paths)
 dtwvis.plot_warpingpaths(W3Foot, W1Foot, paths,best)
 # print(best)
 NpPath = np.array(best)
 
-distance, paths = dtw2.warping_paths(W2Foot, W1Foot, window=13)
+distance, paths = dtw2.warping_paths(W2Foot, W1Foot, window=int(min(W2Foot.shape[0],W1Foot.shape[0])/10), psi=5)
 print(distance)
 best = dtw2.best_path(paths)
 dtwvis.plot_warpingpaths(W2Foot, W1Foot, paths,best)
