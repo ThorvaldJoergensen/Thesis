@@ -34,9 +34,9 @@ def createTensor(core_S, U1, U2, U3):
 def createMean(tensor):
     mean_new_shape = np.mean(tensor, axis=(2,1))
     mean_new_shape.reshape(45,1)
-    mean_tensor = np.zeros((45,tensor.shape[1],128))
+    mean_tensor = np.zeros((45,tensor.shape[1],tensor.shape[2]))
     for i, x in enumerate(mean_new_shape):
-        mean_tensor[i] = np.resize(x, (tensor.shape[1],128))
+        mean_tensor[i] = np.resize(x, (tensor.shape[1],tensor.shape[2]))
     return mean_tensor
 
 # Selects a given predefined subset of sequences
@@ -48,18 +48,18 @@ def getSequence(tensor, labels, name = 'all'):
     fiveWalk = tensor[:,85:90,:]
     allWalkbalancing = tensor[:,170:181,:]
     allWalkuneven = tensor[:,182:218,:]
-    boxing = tensor[:,0,:].reshape(45,1,128)
-    golfing = tensor[:,9,:].reshape(45,1,128)
-    idle = tensor[:,15,:].reshape(45,1,128)
-    jump = tensor[:,18,:].reshape(45,1,128)
-    run = tensor[:,36,:].reshape(45,1,128)
-    shoot = tensor[:,72,:].reshape(45,1,128)
-    sit = tensor[:,78,:].reshape(45,1,128)
-    sweepfloor = tensor[:,79,:].reshape(45,1,128)
-    walk = tensor[:,85,:].reshape(45,1,128)
-    walkbalancing = tensor[:,170,:].reshape(45,1,128)
-    walkuneven = tensor[:,182,:].reshape(45,1,128)
-    washwindow = tensor[:,219,:].reshape(45,1,128)
+    boxing = tensor[:,0,:].reshape(45,1,tensor.shape[2])
+    golfing = tensor[:,9,:].reshape(45,1,tensor.shape[2])
+    idle = tensor[:,15,:].reshape(45,1,tensor.shape[2])
+    jump = tensor[:,18,:].reshape(45,1,tensor.shape[2])
+    run = tensor[:,36,:].reshape(45,1,tensor.shape[2])
+    shoot = tensor[:,72,:].reshape(45,1,tensor.shape[2])
+    sit = tensor[:,78,:].reshape(45,1,tensor.shape[2])
+    sweepfloor = tensor[:,79,:].reshape(45,1,tensor.shape[2])
+    walk = tensor[:,85,:].reshape(45,1,tensor.shape[2])
+    walkbalancing = tensor[:,170,:].reshape(45,1,tensor.shape[2])
+    walkuneven = tensor[:,182,:].reshape(45,1,tensor.shape[2])
+    washwindow = tensor[:,219,:].reshape(45,1,tensor.shape[2])
     fiveBalancing = tensor[:,170:175,:]
     fiveUneven = tensor[:,182:187,:]
 
@@ -99,7 +99,7 @@ def loadData():
     seqList = []
     labelList = []
     minNrFrames = math.inf
-
+    sizes = []
     for filename in x:
         seq = loadmat(filename)
         label = filename[:filename.find('\\')]
@@ -108,11 +108,13 @@ def loadData():
         if W.shape[0] == 1:
             W = W[0][0]
         seqList.append(W)
+        sizes.append(W.shape[0]/3)
         if (W.shape[0]/3 < minNrFrames):
             minNrFrames = int(W.shape[0]/3)
 
     seqList = np.array(seqList)
-    return seqList, labelList, minNrFrames
+    medianNrFrames = np.median(sizes)
+    return seqList, labelList, minNrFrames, int(medianNrFrames)
 
 # From https://stackoverflow.com/questions/18925181/procrustes-analysis-with-numpy
 def procrustes(X, Y, scaling=True, reflection='best'):

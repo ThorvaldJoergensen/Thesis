@@ -1,4 +1,3 @@
-from dtw import *
 import numpy as np
 from scipy.spatial.distance import euclidean
 import matplotlib.pyplot as plt
@@ -79,7 +78,8 @@ import AlignData
 # dtw(seq2, seq1, keep_internals=True, 
 #     step_pattern=rabinerJuangStepPattern(6, "c"))\
 #     .plot(type="twoway",offset=-2)
-seqList, labels, minNrFrames = Helpers.loadData()
+seqList, labels, minNrFrames, medianNrFrames = Helpers.loadData()
+seqList = AlignData.temporalLazy(seqList, medianNrFrames)
 print(seqList.shape)
 runSeqs = seqList[36:72]
 walkSeqs = seqList[85:169]
@@ -111,153 +111,168 @@ for i, x in enumerate(Aligned):
         W1copy[:,j] = points
     AlignedRightForm.append(W1copy[11,:])
     RightFormFull.append(W1copy)
-#AlignedRightForm = np.array(AlignedRightForm)
-print(dtw2.distance_matrix_fast(AlignedRightForm, parallel=True))
-sim_matrix = np.zeros([4,4])
-iPos = 0
-JPos = 0
-minDist = math.inf
-firstPath = []
-for i, x in enumerate(AlignedRightForm):
-    for j, y in enumerate(AlignedRightForm):
-        if i == j:
-            sim_matrix[i][j] = math.inf
-        else:
-            distance = dtw2.distance_fast(AlignedRightForm[j], x, window=int(min(AlignedRightForm[j].shape[0],x.shape[0])/10))
-            sim_matrix[i][j] = distance
-            if distance < minDist:
-                minDist = distance
-                iPos = i
-                JPos = j
-print(iPos)
-print(JPos)
-print(sim_matrix)
-AlignedSeqs = np.zeros([4,45,AlignedRightForm[iPos].shape[0]])
-AlignedSeqs[iPos,:,:] = RightFormFull[iPos]
-AlignedIds = {iPos}
 AlignedRightForm = np.array(AlignedRightForm)
-print(AlignedRightForm[JPos].shape)
-for g in range(0,AlignedRightForm.shape[0]-1):
-    print(int(min(AlignedRightForm[JPos].shape[0],AlignedSeqs[iPos].shape[1])/10))
-    print(AlignedSeqs[iPos,11,:].shape)
-    print(AlignedRightForm[JPos].shape)
-    _,paths = dtw2.warping_paths(AlignedRightForm[JPos], AlignedSeqs[iPos,11,:], window=int(min(AlignedRightForm[JPos].shape[0],AlignedSeqs[iPos].shape[1])/10))
-    path = np.array(dtw2.best_path(paths))
-    print(path)
-    JAligned = np.zeros([45,AlignedSeqs[iPos].shape[1]])
-    print(RightFormFull[JPos].shape)
-    for j in range(0,AlignedSeqs[iPos].shape[1]-1):
-        JAligned[:,j] = RightFormFull[JPos][:,int(path[j][0])]
-    AlignedSeqs[JPos,:,:] = JAligned
-    AlignedIds.add(JPos)
-    if g != AlignedRightForm.shape[0]-2:
-        newSim = np.zeros([len(AlignedIds),AlignedRightForm.shape[0]])
-        for f,x in enumerate(AlignedIds):
-            newSim[f] = sim_matrix[x]
-        minDist = math.inf
-        for i,x in enumerate(newSim):
-            for j,d in enumerate(newSim[i]):
-                if j in AlignedIds:
-                    continue
-                else:
-                    if newSim[i][j] < minDist:
-                        minDist = newSim[i][j]
-                        iPos = i
-                        JPos = j
 
-sim_matrix = np.array(sim_matrix)
-print(sim_matrix)
+
+def multiDTW(aligned, full):
+    print(dtw2.distance_matrix_fast(aligned, parallel=True))
+    sim_matrix = np.zeros([4,4])
+    iPos = 0
+    JPos = 0
+    firstI = 0
+    firstJ = 0
+    minDist = math.inf
+    firstPath = []
+    for i, x in enumerate(aligned):
+        for j, y in enumerate(aligned):
+            if i == j:
+                sim_matrix[i][j] = math.inf
+            else:
+                distance = dtw2.distance_fast(aligned[j], x, window=int(min(aligned[j].shape[0],x.shape[0])/10))
+                sim_matrix[i][j] = distance
+                if distance < minDist:
+                    minDist = distance
+                    firstI = i
+                    firstJ = j
+                    iPos = i
+                    JPos = j
+
+    print("Id's: ", iPos, JPos)
+    print(sim_matrix)
+    AlignedSeqs = np.zeros([aligned.shape[0],45,aligned[iPos].shape[0]])
+    AlignedSeqs[iPos,:,:] = full[iPos]
+    AlignedIds = {iPos}
+    aligned = np.array(aligned)
+    for g in range(0,aligned.shape[0]-1):
+        _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[iPos,11,:], window=int(min(aligned[JPos].shape[0],AlignedSeqs[iPos].shape[1])/10))
+        path = np.array(dtw2.best_path(paths))
+        JAligned = np.zeros([45,AlignedSeqs[iPos].shape[1]])
+        for j in range(0,AlignedSeqs[iPos].shape[1]):
+            JAligned[:,j] = full[JPos][:,int(path[j][0])]
+        AlignedSeqs[JPos,:,:] = JAligned
+        AlignedIds.add(JPos)
+        if g != aligned.shape[0]-2:
+            newSim = np.zeros([len(AlignedIds),aligned.shape[0]])
+            for f,x in enumerate(AlignedIds):
+                newSim[f] = sim_matrix[x]
+            minDist = math.inf
+            for i,x in enumerate(newSim):
+                for j,d in enumerate(newSim[i]):
+                    if j in AlignedIds or i == j:
+                        continue
+                    else:
+                        if newSim[i][j] < minDist:
+                            minDist = newSim[i][j]
+                            iPos = i
+                            JPos = j
+    return AlignedSeqs
+    
+runAligned = multiDTW(AlignedRightForm[:2], RightFormFull[:2])
+walkAligned = multiDTW(AlignedRightForm[2:], RightFormFull[2:])
+
+
+AlignedSeqs = np.concatenate((runAligned, walkAligned))
+
+print(AlignedSeqs.shape)
+
+animation = Plotting.animate(AlignedSeqs[0])
+
+animation2 = Plotting.animate(AlignedSeqs[2])
+plt.show()
+
+print("Second part")
 print(runSeqs.shape)
 print(walkSeqs.shape)
-seq1 = loadmat('run/09_07.mat')
-seq2 = loadmat('run/16_36.mat')
-seq3 = loadmat('walk/08_02.mat')
-W1 = np.array(seq1.get('W'))[0][0]
-W2 = np.array(seq2.get('W'))[0][0]
-W3 = np.array(seq3.get('W'))[0][0]
-print(W1.shape)
-print(W2.shape)
-print(W3.shape)
+# seq1 = loadmat('run/09_07.mat')
+# seq2 = loadmat('run/16_36.mat')
+# seq3 = loadmat('walk/08_02.mat')
+# W1 = np.array(seq1.get('W'))[0][0]
+# W2 = np.array(seq2.get('W'))[0][0]
+# W3 = np.array(seq3.get('W'))[0][0]
+# print(W1.shape)
+# print(W2.shape)
+# print(W3.shape)
 
-seq0 = None
-def NewLength(seq, NmFrames, seq0):
-    frameToTake = int(int(seq.shape[0]/3)/NmFrames)
-    idx = np.round(np.linspace(0,int(seq.shape[0]/3)-1,NmFrames)).astype(int)
-    newFrames = np.zeros([NmFrames*3,15])
-    for j, i in enumerate(idx):
-        newFrames[j*3] = seq[i*3]
-        newFrames[j*3+1] = seq[i*3+1]
-        newFrames[j*3+2] = seq[i*3+2]
-    index_inner = [0,9,12]
-    for frame in range(0,newFrames.shape[0], 3):
-        frameShape = np.zeros([3,15])
-        frameShape[0,:] = newFrames[frame,:]
-        frameShape[1,:] = newFrames[frame+1,:]
-        frameShape[2,:] = newFrames[frame+2,:]
-        if (seq0 is None):
-            seq0 = frameShape
-        else:
-            _, _, transform = Helpers.procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
-            Z = np.matmul(transform['scale']*np.transpose(frameShape),transform['rotation'])
-            frameShape = np.transpose(Z)
-            triangle_static = seq0[:,index_inner]
-            triangle_deform = frameShape[:,index_inner]
-            _,_, transform2 = Helpers.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
-            frameShape_transformed = np.matmul(transform2['scale']*np.transpose(frameShape),transform2['rotation'])
-            frameShape = np.transpose(frameShape_transformed)
-            newFrames[frame,:] = frameShape[0,:]
-            newFrames[frame+1,:] = frameShape[1,:]
-            newFrames[frame+2,:] = frameShape[2,:]
-    return newFrames, seq0
+# seq0 = None
+# def NewLength(seq, NmFrames, seq0):
+#     frameToTake = int(int(seq.shape[0]/3)/NmFrames)
+#     idx = np.round(np.linspace(0,int(seq.shape[0]/3)-1,NmFrames)).astype(int)
+#     newFrames = np.zeros([NmFrames*3,15])
+#     for j, i in enumerate(idx):
+#         newFrames[j*3] = seq[i*3]
+#         newFrames[j*3+1] = seq[i*3+1]
+#         newFrames[j*3+2] = seq[i*3+2]
+#     index_inner = [0,9,12]
+#     for frame in range(0,newFrames.shape[0], 3):
+#         frameShape = np.zeros([3,15])
+#         frameShape[0,:] = newFrames[frame,:]
+#         frameShape[1,:] = newFrames[frame+1,:]
+#         frameShape[2,:] = newFrames[frame+2,:]
+#         if (seq0 is None):
+#             seq0 = frameShape
+#         else:
+#             _, _, transform = Helpers.procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
+#             Z = np.matmul(transform['scale']*np.transpose(frameShape),transform['rotation'])
+#             frameShape = np.transpose(Z)
+#             triangle_static = seq0[:,index_inner]
+#             triangle_deform = frameShape[:,index_inner]
+#             _,_, transform2 = Helpers.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
+#             frameShape_transformed = np.matmul(transform2['scale']*np.transpose(frameShape),transform2['rotation'])
+#             frameShape = np.transpose(frameShape_transformed)
+#             newFrames[frame,:] = frameShape[0,:]
+#             newFrames[frame+1,:] = frameShape[1,:]
+#             newFrames[frame+2,:] = frameShape[2,:]
+#     return newFrames, seq0
 
-W1, seqSp = NewLength(W1, 128, seq0)
-seq0 = seqSp
-W2, seqSp = NewLength(W2, 128, seq0)
-W3, seqSp = NewLength(W3, 128, seq0)
+# W1, seqSp = NewLength(W1, 128, seq0)
+# seq0 = seqSp
+# W2, seqSp = NewLength(W2, 128, seq0)
+# W3, seqSp = NewLength(W3, 128, seq0)
 
-W1copy = np.zeros([45, int(W1.shape[0]/3)])
-for j in range(0,int(W1.shape[0]/3)):
-    k = 3*j
-    shape = W1[k:k+3,:]
-    points = np.zeros([45])
-    for l in range(0,15):
-        points[l*3] = shape[0][l]
-        points[(l*3)+2] = shape[1][l]
-        points[(l*3)+1] = shape[2][l]
-    W1copy[:,j] = points
-
-
-W2copy = np.zeros([45, int(W2.shape[0]/3)])
-for j in range(0,int(W2.shape[0]/3)):
-    k = 3*j
-    shape = W2[k:k+3,:]
-    points = np.zeros([45])
-    for l in range(0,15):
-        points[l*3] = shape[0][l]
-        points[(l*3)+2] = shape[1][l]
-        points[(l*3)+1] = shape[2][l]
-    W2copy[:,j] = points
+# W1copy = np.zeros([45, int(W1.shape[0]/3)])
+# for j in range(0,int(W1.shape[0]/3)):
+#     k = 3*j
+#     shape = W1[k:k+3,:]
+#     points = np.zeros([45])
+#     for l in range(0,15):
+#         points[l*3] = shape[0][l]
+#         points[(l*3)+2] = shape[1][l]
+#         points[(l*3)+1] = shape[2][l]
+#     W1copy[:,j] = points
 
 
-W3copy = np.zeros([45, int(W3.shape[0]/3)])
-for j in range(0,int(W3.shape[0]/3)):
-    k = 3*j
-    shape = W3[k:k+3,:]
-    points = np.zeros([45])
-    for l in range(0,15):
-        points[l*3] = shape[0][l]
-        points[(l*3)+2] = shape[1][l]
-        points[(l*3)+1] = shape[2][l]
-    W3copy[:,j] = points
-
-print(W1copy.shape)
-print(W2copy.shape)
-print(W3copy.shape)
+# W2copy = np.zeros([45, int(W2.shape[0]/3)])
+# for j in range(0,int(W2.shape[0]/3)):
+#     k = 3*j
+#     shape = W2[k:k+3,:]
+#     points = np.zeros([45])
+#     for l in range(0,15):
+#         points[l*3] = shape[0][l]
+#         points[(l*3)+2] = shape[1][l]
+#         points[(l*3)+1] = shape[2][l]
+#     W2copy[:,j] = points
 
 
-W1Foot = W1copy[11,:]
-W2Foot = W2copy[11,:]
-W3Foot = W3copy[11,:]
+# W3copy = np.zeros([45, int(W3.shape[0]/3)])
+# for j in range(0,int(W3.shape[0]/3)):
+#     k = 3*j
+#     shape = W3[k:k+3,:]
+#     points = np.zeros([45])
+#     for l in range(0,15):
+#         points[l*3] = shape[0][l]
+#         points[(l*3)+2] = shape[1][l]
+#         points[(l*3)+1] = shape[2][l]
+#     W3copy[:,j] = points
+
+# print(W1copy.shape)
+# print(W2copy.shape)
+# print(W3copy.shape)
+
+
+W1Foot = AlignedSeqs[0, 11, :]
+W2Foot = AlignedSeqs[1, 11, :]
+W3Foot = AlignedSeqs[2, 11, :]
+W4Foot = AlignedSeqs[3, 11, :]
 
 W1plot = np.zeros([W1Foot.shape[0],2])
 for i in range(0,W1plot.shape[0]):
@@ -274,12 +289,51 @@ for i in range(0,W3plot.shape[0]):
     W3plot[i][0] = i
     W3plot[i][1] = W3Foot[i]
 
+W4plot = np.zeros([W4Foot.shape[0],2])
+for i in range(0,W4plot.shape[0]):
+    W4plot[i][0] = i
+    W4plot[i][1] = W4Foot[i]
+
 fig = plt.figure()
 ax = plt.axes()
-ax.plot(W1plot[:,0], W1plot[:,1],c="b")
-ax.plot(W2plot[:,0],W2plot[:,1],c="g")
-ax.plot(W3plot[:,0],W3plot[:,1],c="r")
+ax.plot(W1plot[:,0], W1plot[:,1],c="b", label="0")
+ax.plot(W2plot[:,0],W2plot[:,1],c="g", label="1")
+ax.plot(W3plot[:,0],W3plot[:,1],c="r", label="2")
+ax.plot(W4plot[:,0],W4plot[:,1],c="purple", label="3")
+plt.legend()
 
+W1Foot = AlignedRightForm[0, :]
+W2Foot = AlignedRightForm[1, :]
+W3Foot = AlignedRightForm[2, :]
+W4Foot = AlignedRightForm[3, :]
+
+W1plot = np.zeros([W1Foot.shape[0],2])
+for i in range(0,W1plot.shape[0]):
+    W1plot[i][0] = i
+    W1plot[i][1] = W1Foot[i]
+
+W2plot = np.zeros([W2Foot.shape[0],2])
+for i in range(0,W2plot.shape[0]):
+    W2plot[i][0] = i
+    W2plot[i][1] = W2Foot[i]
+
+W3plot = np.zeros([W3Foot.shape[0],2])
+for i in range(0,W3plot.shape[0]):
+    W3plot[i][0] = i
+    W3plot[i][1] = W3Foot[i]
+
+W4plot = np.zeros([W4Foot.shape[0],2])
+for i in range(0,W4plot.shape[0]):
+    W4plot[i][0] = i
+    W4plot[i][1] = W4Foot[i]
+
+fig = plt.figure()
+ax = plt.axes()
+ax.plot(W1plot[:,0], W1plot[:,1],c="b", label="0")
+ax.plot(W2plot[:,0],W2plot[:,1],c="g", label="1")
+ax.plot(W3plot[:,0],W3plot[:,1],c="r", label="2")
+ax.plot(W4plot[:,0],W4plot[:,1],c="purple", label="3")
+plt.legend()
 plt.show()
 
 
@@ -288,7 +342,7 @@ NpPath = np.array(path)
 
 WSmasked = [W1Foot,W2Foot]
 
-distance, paths = dtw2.warping_paths(W3Foot, W1Foot, window=int(min(W3Foot.shape[0],W1Foot.shape[0])/10), psi=5)
+distance, paths = dtw2.warping_paths(W3Foot, W2Foot, window=int(min(W3Foot.shape[0],W1Foot.shape[0])/10), psi=5)
 print(distance)
 best = dtw2.best_path(paths)
 dtwvis.plot_warpingpaths(W3Foot, W1Foot, paths,best)
@@ -309,30 +363,30 @@ plt.show()
 
 # #print(NpPath)
 
-W1Aligned = np.zeros([45,W2plot.shape[0]])
-for i in range(0,W2plot.shape[0]):
-    W1Aligned[:,i] = W1copy[:,int(NpPath[i][1])]
-# print("distance: ",distance)
-# print(path)
+# W1Aligned = np.zeros([45,W2plot.shape[0]])
+# for i in range(0,W2plot.shape[0]):
+#     W1Aligned[:,i] = AlignedSeqs[1, :,int(NpPath[i][1])]
+# # print("distance: ",distance)
+# # print(path)
 
-W3Aligned = np.zeros([45,W2plot.shape[0]])
-for i in range(0,W2plot.shape[0]):
-    W3Aligned[:,i] = W3copy[:,int(NpPath[i][0])]
-
-
-# alignment = dtw(W1Foot, W2Foot, keep_internals=True)
-
-# ## Display the warping curve, i.e. the alignment curve
-# alignment.plot(type="threeway")
-
-# ## Align and plot with the Rabiner-Juang type VI-c unsmoothed recursion
-# dtw(W1Foot, W2Foot, keep_internals=True, 
-#     step_pattern=rabinerJuangStepPattern(6, "c"))\
-#     .plot(type="twoway",offset=-2)
+# W3Aligned = np.zeros([45,W3plot.shape[0]])
+# for i in range(0,W3plot.shape[0]):
+#     W3Aligned[:,i] = AlignedSeqs[2, :,int(NpPath[i][0])]
 
 
-ani1 = Plotting.animate(W1Aligned)
+# # alignment = dtw(W1Foot, W2Foot, keep_internals=True)
 
-ani2 = Plotting.animate(W3Aligned)
+# # ## Display the warping curve, i.e. the alignment curve
+# # alignment.plot(type="threeway")
 
-plt.show()
+# # ## Align and plot with the Rabiner-Juang type VI-c unsmoothed recursion
+# # dtw(W1Foot, W2Foot, keep_internals=True, 
+# #     step_pattern=rabinerJuangStepPattern(6, "c"))\
+# #     .plot(type="twoway",offset=-2)
+
+
+# ani1 = Plotting.animate(W1Aligned)
+
+# ani2 = Plotting.animate(W3Aligned)
+
+# plt.show()

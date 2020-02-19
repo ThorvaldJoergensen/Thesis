@@ -25,17 +25,17 @@ import matplotlib.patches as mpatches
 import matplotlib
 
 
-seqList, labelList, minNrFrames = Helpers.loadData()
+seqList, labelList, minNrFrames, medianNrFrames = Helpers.loadData()
 
 print(minNrFrames)
 print(seqList[0].shape)
 print(np.array(labelList).shape)
 
 
-seqList = AlignData.temporalLazy(seqList, minNrFrames)
+seqList = AlignData.temporalLazy(seqList, medianNrFrames)
 seqList = AlignData.spatial(seqList)
 
-tensor = AlignData.createTensor(seqList, 45, minNrFrames)
+tensor = AlignData.createTensor(seqList, 45, medianNrFrames)
 
 print(tensor.shape)
 
@@ -82,7 +82,6 @@ data = np.concatenate((U2[36:72],U2[85:169]))
 labels1 = np.array(labelList)
 labels = np.concatenate((labels1[36:72],labels1[85:169]))
 classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
-
 
 labels2 = []
 for i, value in enumerate(labels):

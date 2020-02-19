@@ -1,12 +1,12 @@
 import numpy as np
-import sys
+import sys, math
 from sktensor import dtensor
 sys.path.insert(1, '../Testing')
 import Helpers
 
 
 def spatial(data):
-    print('Starting spacial alignment')
+    print('Starting spatial alignment')
     seq0 = None
     for seq in data:
         index_inner = [0,9,12]
@@ -29,19 +29,43 @@ def spatial(data):
                 seq[frame,:] = frameShape[0,:]
                 seq[frame+1,:] = frameShape[1,:]
                 seq[frame+2,:] = frameShape[2,:]
-    print('Finished spacial alignment')
+    print('Finished spatial alignment')
     return data
 
-def temporalLazy(data, minNrFrames):
+def temporalLazy(data, nrFrames):
     print('Starting lazy temporal alignment')
     for i, seq in enumerate(data):
-        idx = np.round(np.linspace(0,int(seq.shape[0]/3)-1,minNrFrames)).astype(int)
-        newFrames = np.zeros([minNrFrames*3,15])
-        for j, k in enumerate(idx):
-            newFrames[j*3] = seq[k*3]
-            newFrames[j*3+1] = seq[k*3+1]
-            newFrames[j*3+2] = seq[k*3+2]
-        data[i] = newFrames
+        if nrFrames * 3 <= seq.shape[0]:
+            newFrames = np.zeros([nrFrames*3,15])
+            idx = np.round(np.linspace(0,int(seq.shape[0]/3)-1,nrFrames)).astype(int)
+            for j, k in enumerate(idx):
+                newFrames[j*3] = seq[k*3]
+                newFrames[j*3+1] = seq[k*3+1]
+                newFrames[j*3+2] = seq[k*3+2]
+            data[i] = newFrames
+        else:
+            sizeMultiplier = round(nrFrames / (seq.shape[0]/3), 3)
+            decimal, integer = math.modf(sizeMultiplier)
+            decimal = round(decimal, 3)
+            tempList = []
+            counter = 0.0
+            for j in range(0, seq.shape[0], 3):
+                for k in range(0, int(integer)):
+                    tempList.append(seq[j])
+                    tempList.append(seq[j+1])
+                    tempList.append(seq[j+2])
+                counter += decimal
+                if counter >= 1:
+                    tempList.append(seq[j])
+                    tempList.append(seq[j+1])
+                    tempList.append(seq[j+2])
+                    counter, _ = math.modf(counter)
+                    counter = round(counter, 3)
+            if len(tempList) < nrFrames * 3:
+                tempList.append(seq[seq.shape[0]-3])
+                tempList.append(seq[seq.shape[0]-2])
+                tempList.append(seq[seq.shape[0]-1])
+            data[i] = np.array(tempList)
     print('Finished lazy temporal alignment')
     return data
 
