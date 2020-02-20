@@ -129,8 +129,8 @@ def plotU3(U3):
     # Draw black line between all points
     ax3.plot(U3[:,0], U3[:,1], U3[:,2], c="black", markersize=1)
     # Label with incrementing counter
-    for i in range(U3.shape[0]):
-        ax3.text(U3[i,0], U3[i,1], U3[i,2], i, size=6)
+    # for i in range(U3.shape[0]):
+    #     ax3.text(U3[i,0], U3[i,1], U3[i,2], i, size=6)
     ax3.set_xlim(0.12,0.02)
     ax3.set_ylim(-0.15,0.2)
     ax3.set_zlim(0.2,-0.15)

@@ -50,17 +50,30 @@ def temporalLazy(data, nrFrames):
             tempList = []
             counter = 0.0
             for j in range(0, seq.shape[0], 3):
-                for k in range(0, int(integer)):
-                    tempList.append(seq[j])
-                    tempList.append(seq[j+1])
-                    tempList.append(seq[j+2])
                 counter += decimal
-                if counter >= 1:
-                    tempList.append(seq[j])
-                    tempList.append(seq[j+1])
-                    tempList.append(seq[j+2])
-                    counter, _ = math.modf(counter)
-                    counter = round(counter, 3)
+                combinationValue = 1.0
+                if counter >= 1.0:
+                    Iterations = integer+1
+                else:
+                    Iterations = integer
+                for k in range(0, int(Iterations)):
+                    if j < seq.shape[0]-4:
+                        tempList.append(combinationValue*seq[j]+(1-combinationValue)*seq[j+3])
+                        tempList.append(combinationValue*seq[j+1]+(1-combinationValue)*seq[j+4])
+                        tempList.append(combinationValue*seq[j+2]+(1-combinationValue)*seq[j+5])
+                    else:
+                        distanceToPrevX = seq[j] - seq[j-3]
+                        distanceToPrevY = seq[j+1] - seq[j-2]
+                        distanceToPrevZ = seq[j+2] - seq[j-1]
+                        tempList.append(combinationValue*seq[j]+(1-combinationValue)*(distanceToPrevX+seq[j]))
+                        tempList.append(combinationValue*seq[j+1]+(1-combinationValue)*(distanceToPrevY+seq[j+1]))
+                        tempList.append(combinationValue*seq[j+2]+(1-combinationValue)*(distanceToPrevZ+seq[j+2]))
+                    if counter >= 1:
+                        combinationValue -= 1/(integer+1)
+                    else:
+                        combinationValue -= 1/integer
+                counter, _ = math.modf(counter)
+                counter = round(counter, 3)
             if len(tempList) < nrFrames * 3:
                 tempList.append(seq[seq.shape[0]-3])
                 tempList.append(seq[seq.shape[0]-2])

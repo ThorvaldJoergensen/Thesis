@@ -109,14 +109,18 @@ for i, x in enumerate(Aligned):
             points[(l*3)+2] = shape[1][l]
             points[(l*3)+1] = shape[2][l]
         W1copy[:,j] = points
-    AlignedRightForm.append(W1copy[11,:])
+    AlignedRightForm.append(W1copy[44,:])
     RightFormFull.append(W1copy)
 AlignedRightForm = np.array(AlignedRightForm)
 
 
-def multiDTW(aligned, full):
-    print(dtw2.distance_matrix_fast(aligned, parallel=True))
-    sim_matrix = np.zeros([4,4])
+def multiDTW(seqs, id):
+    aligned = []
+    for i in seqs:
+        aligned.append(i[id,:])
+    aligned = np.array(aligned)
+    #print(dtw2.distance_matrix_fast(aligned, parallel=True))
+    sim_matrix = np.zeros([seqs.shape[0],seqs.shape[0]])
     iPos = 0
     JPos = 0
     firstI = 0
@@ -128,7 +132,7 @@ def multiDTW(aligned, full):
             if i == j:
                 sim_matrix[i][j] = math.inf
             else:
-                distance = dtw2.distance_fast(aligned[j], x, window=int(min(aligned[j].shape[0],x.shape[0])/10))
+                distance = dtw2.distance_fast(aligned[j], x)
                 sim_matrix[i][j] = distance
                 if distance < minDist:
                     minDist = distance
@@ -140,15 +144,15 @@ def multiDTW(aligned, full):
     print("Id's: ", iPos, JPos)
     print(sim_matrix)
     AlignedSeqs = np.zeros([aligned.shape[0],45,aligned[iPos].shape[0]])
-    AlignedSeqs[iPos,:,:] = full[iPos]
+    AlignedSeqs[iPos,:,:] = seqs[iPos]
     AlignedIds = {iPos}
     aligned = np.array(aligned)
     for g in range(0,aligned.shape[0]-1):
-        _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[iPos,11,:], window=int(min(aligned[JPos].shape[0],AlignedSeqs[iPos].shape[1])/10))
+        _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[iPos,id,:])
         path = np.array(dtw2.best_path(paths))
         JAligned = np.zeros([45,AlignedSeqs[iPos].shape[1]])
         for j in range(0,AlignedSeqs[iPos].shape[1]):
-            JAligned[:,j] = full[JPos][:,int(path[j][0])]
+            JAligned[:,j] = seqs[JPos][:,int(path[j][0])]
         AlignedSeqs[JPos,:,:] = JAligned
         AlignedIds.add(JPos)
         if g != aligned.shape[0]-2:
@@ -167,8 +171,8 @@ def multiDTW(aligned, full):
                             JPos = j
     return AlignedSeqs
     
-runAligned = multiDTW(AlignedRightForm[:2], RightFormFull[:2])
-walkAligned = multiDTW(AlignedRightForm[2:], RightFormFull[2:])
+runAligned = multiDTW(RightFormFull[:2], 44)
+walkAligned = multiDTW(RightFormFull[2:], 44)
 
 
 AlignedSeqs = np.concatenate((runAligned, walkAligned))
@@ -269,10 +273,10 @@ print(walkSeqs.shape)
 # print(W3copy.shape)
 
 
-W1Foot = AlignedSeqs[0, 11, :]
-W2Foot = AlignedSeqs[1, 11, :]
-W3Foot = AlignedSeqs[2, 11, :]
-W4Foot = AlignedSeqs[3, 11, :]
+W1Foot = AlignedSeqs[0, 44, :]
+W2Foot = AlignedSeqs[1, 44, :]
+W3Foot = AlignedSeqs[2, 44, :]
+W4Foot = AlignedSeqs[3, 44, :]
 
 W1plot = np.zeros([W1Foot.shape[0],2])
 for i in range(0,W1plot.shape[0]):
@@ -342,14 +346,14 @@ NpPath = np.array(path)
 
 WSmasked = [W1Foot,W2Foot]
 
-distance, paths = dtw2.warping_paths(W3Foot, W2Foot, window=int(min(W3Foot.shape[0],W1Foot.shape[0])/10), psi=5)
+distance, paths = dtw2.warping_paths(W3Foot, W2Foot)
 print(distance)
 best = dtw2.best_path(paths)
 dtwvis.plot_warpingpaths(W3Foot, W1Foot, paths,best)
 # print(best)
 NpPath = np.array(best)
 
-distance, paths = dtw2.warping_paths(W2Foot, W1Foot, window=int(min(W2Foot.shape[0],W1Foot.shape[0])/10), psi=5)
+distance, paths = dtw2.warping_paths(W2Foot, W1Foot)
 print(distance)
 best = dtw2.best_path(paths)
 dtwvis.plot_warpingpaths(W2Foot, W1Foot, paths,best)

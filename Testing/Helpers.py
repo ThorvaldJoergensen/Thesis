@@ -4,6 +4,8 @@ from sktensor.tucker import hosvd
 import glob, os, math
 from scipy.io.matlab import loadmat
 
+from dtaidistance import dtw as dtw2
+
 
 # Perform HOSVD and return core tensor and U matrices
 def svd(tensor):
@@ -115,6 +117,63 @@ def loadData():
     seqList = np.array(seqList)
     medianNrFrames = np.median(sizes)
     return seqList, labelList, minNrFrames, int(medianNrFrames)
+
+def multiDTW(seqs, id):
+    aligned = []
+    for i in range(0,seqs.shape[1]):
+        aligned.append(seqs[id,i,:])
+    aligned = np.array(aligned)
+    #print(dtw2.distance_matrix_fast(aligned, parallel=True))
+    sim_matrix = np.zeros([seqs.shape[1],seqs.shape[1]])
+    iPos = 0
+    JPos = 0
+    firstI = 0
+    firstJ = 0
+    minDist = math.inf
+    firstPath = []
+    for i, x in enumerate(aligned):
+        for j, y in enumerate(aligned):
+            if i == j:
+                sim_matrix[i][j] = math.inf
+            else:
+                distance = dtw2.distance_fast(aligned[j], x)
+                sim_matrix[i][j] = distance
+                if distance < minDist:
+                    minDist = distance
+                    firstI = i
+                    firstJ = j
+                    iPos = i
+                    JPos = j
+
+    # print("Id's: ", iPos, JPos)
+    # print(sim_matrix)
+    AlignedSeqs = np.zeros([45,aligned.shape[0],aligned[iPos].shape[0]])
+    AlignedSeqs[:,iPos,:] = seqs[:,iPos,:]
+    AlignedIds = {iPos}
+    aligned = np.array(aligned)
+    for g in range(0,aligned.shape[0]-1):
+        _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[id,iPos,:])
+        path = np.array(dtw2.best_path(paths))
+        JAligned = np.zeros([45,AlignedSeqs[:,iPos,:].shape[1]])
+        for j in range(0,AlignedSeqs[:,iPos,:].shape[1]):
+            JAligned[:,j] = seqs[:,JPos,:][:,int(path[j][0])]
+        AlignedSeqs[:,JPos,:] = JAligned
+        AlignedIds.add(JPos)
+        if g != aligned.shape[0]-2:
+            newSim = np.zeros([len(AlignedIds),aligned.shape[0]])
+            for f,x in enumerate(AlignedIds):
+                newSim[f] = sim_matrix[x]
+            minDist = math.inf
+            for i,x in enumerate(newSim):
+                for j,d in enumerate(newSim[i]):
+                    if j in AlignedIds or i == j:
+                        continue
+                    else:
+                        if newSim[i][j] < minDist:
+                            minDist = newSim[i][j]
+                            iPos = i
+                            JPos = j
+    return AlignedSeqs
 
 # From https://stackoverflow.com/questions/18925181/procrustes-analysis-with-numpy
 def procrustes(X, Y, scaling=True, reflection='best'):

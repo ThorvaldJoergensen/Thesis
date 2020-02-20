@@ -52,6 +52,13 @@ action_names = np.array(mat.get('action_names')) # 12 entries
 # Load full tensor from matlab file
 tensor0 = tensor
 
+#Align Actions in tensor - maybe make loop parallel????
+for i, action in enumerate(action_names):
+    print('Now aligning: ',action_names[i])
+    tensor0[:,labels[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labels[:,0]==i+1,:],11)
+
+ani2 = Plotting.animate(tensor[:,4,:])
+plt.show()
 # Select a given subset of sequences
 if len(sys.argv) > 1:
     sequence, labelsStacked = Helpers.getSequence(tensor0, labels, sys.argv[1])
@@ -79,8 +86,10 @@ Plotting.plotU3(U3)
 plt.show()
 
 data = np.concatenate((U2[36:72],U2[85:169]))
+data = U2
 labels1 = np.array(labelList)
 labels = np.concatenate((labels1[36:72],labels1[85:169]))
+labels = labels1
 classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
 
 labels2 = []
