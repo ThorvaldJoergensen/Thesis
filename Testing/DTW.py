@@ -78,6 +78,8 @@ import AlignData
 # dtw(seq2, seq1, keep_internals=True, 
 #     step_pattern=rabinerJuangStepPattern(6, "c"))\
 #     .plot(type="twoway",offset=-2)
+id = 8
+
 seqList, labels, minNrFrames, medianNrFrames = Helpers.loadData()
 seqList = AlignData.temporalLazy(seqList, medianNrFrames)
 print(seqList.shape)
@@ -109,10 +111,39 @@ for i, x in enumerate(Aligned):
             points[(l*3)+2] = shape[1][l]
             points[(l*3)+1] = shape[2][l]
         W1copy[:,j] = points
-    AlignedRightForm.append(W1copy[44,:])
+    AlignedRightForm.append(W1copy[id,:])
     RightFormFull.append(W1copy)
 AlignedRightForm = np.array(AlignedRightForm)
+RightFormFull = np.array(RightFormFull)
+def scaleSeqs (W3Foot, W4Foot):
+    maxIValue = np.max(W3Foot)
+    maxJValue = np.max(W4Foot)
+    newISeqs = np.zeros(W3Foot.shape)
+    newJSeqs = np.zeros(W4Foot.shape)
 
+    if (abs(maxIValue) > abs(maxJValue*2)):
+            print("Doing it 1 ", maxIValue, maxJValue)
+            dividerValue = maxIValue / maxJValue
+            dividerValue = dividerValue * (3/4)
+            newISeqs = W3Foot
+            newJSeqs = W4Foot + (maxIValue / 2)
+            print("old 2, ", np.max(W4Foot))
+            print("new 2, ", np.max(newJSeqs))
+            print("Divider ", dividerValue)
+    elif (abs(maxJValue) > abs(maxIValue*2)): 
+            print("doing it 2 ", maxIValue, maxJValue)
+            dividerValue = maxJValue / maxIValue
+            dividerValue = dividerValue * (3/4)
+            newISeqs = W3Foot + (maxJValue / 2)
+            newJSeqs = W4Foot
+            print("Old 1, " ,np.max(W3Foot))
+            print("New 1, ", np.max(newISeqs))
+            print("divider ", dividerValue)
+    else:
+            print("not doing it ", maxIValue, maxJValue)
+            newISeqs = W3Foot
+            newJSeqs = W4Foot
+    return newISeqs,newJSeqs
 
 def multiDTW(seqs, id):
     aligned = []
@@ -148,7 +179,8 @@ def multiDTW(seqs, id):
     AlignedIds = {iPos}
     aligned = np.array(aligned)
     for g in range(0,aligned.shape[0]-1):
-        _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[iPos,id,:])
+        # newISeqs, newJSeqs = scaleSeqs(aligned[JPos], AlignedSeqs[iPos, id, :])
+        _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[iPos, id, :], window=int(min(aligned[JPos].shape[0], AlignedSeqs[iPos,id,:].shape[0])/10))
         path = np.array(dtw2.best_path(paths))
         JAligned = np.zeros([45,AlignedSeqs[iPos].shape[1]])
         for j in range(0,AlignedSeqs[iPos].shape[1]):
@@ -171,8 +203,8 @@ def multiDTW(seqs, id):
                             JPos = j
     return AlignedSeqs
     
-runAligned = multiDTW(RightFormFull[:2], 44)
-walkAligned = multiDTW(RightFormFull[2:], 44)
+runAligned = multiDTW(np.array(RightFormFull[:2]), id)
+walkAligned = multiDTW(np.array(RightFormFull[2:]), id)
 
 
 AlignedSeqs = np.concatenate((runAligned, walkAligned))
@@ -181,7 +213,7 @@ print(AlignedSeqs.shape)
 
 animation = Plotting.animate(AlignedSeqs[0])
 
-animation2 = Plotting.animate(AlignedSeqs[2])
+animation2 = Plotting.animate(AlignedSeqs[1])
 plt.show()
 
 print("Second part")
@@ -273,30 +305,45 @@ print(walkSeqs.shape)
 # print(W3copy.shape)
 
 
-W1Foot = AlignedSeqs[0, 44, :]
-W2Foot = AlignedSeqs[1, 44, :]
-W3Foot = AlignedSeqs[2, 44, :]
-W4Foot = AlignedSeqs[3, 44, :]
+W1Foot = AlignedSeqs[0, id, :]
+W2Foot = AlignedSeqs[1, id, :]
+W3Foot = AlignedSeqs[2, id, :]
+W4Foot = AlignedSeqs[3, id, :]
 
-W1plot = np.zeros([W1Foot.shape[0],2])
-for i in range(0,W1plot.shape[0]):
+# W1plot = np.zeros([W1Foot.shape[0],2])
+# for i in range(0,W1plot.shape[0]):
+#     W1plot[i][0] = i
+#     W1plot[i][1] = W1Foot[i]
+
+def angle(a,b,c):
+    ba = a - b
+    bc = c - b
+
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    angle = np.arccos(cosine_angle)
+
+    return np.degrees(angle)
+
+W1plot = np.zeros([W1Foot.shape[0], 2])
+print("tasdlka", AlignedSeqs[0, 33:35, :].shape)
+for i in range(0, W1plot.shape[0]):
     W1plot[i][0] = i
-    W1plot[i][1] = W1Foot[i]
+    W1plot[i][1] = angle(AlignedSeqs[0, 33:36, i],AlignedSeqs[0, 30:33, i], AlignedSeqs[0, 27:30, i])
 
 W2plot = np.zeros([W2Foot.shape[0],2])
 for i in range(0,W2plot.shape[0]):
     W2plot[i][0] = i
-    W2plot[i][1] = W2Foot[i]
+    W2plot[i][1] = angle(AlignedSeqs[1, 33:36, i],AlignedSeqs[1, 30:33, i], AlignedSeqs[1, 27:30, i])
 
 W3plot = np.zeros([W3Foot.shape[0],2])
 for i in range(0,W3plot.shape[0]):
     W3plot[i][0] = i
-    W3plot[i][1] = W3Foot[i]
+    W3plot[i][1] = angle(AlignedSeqs[2, 33:36, i],AlignedSeqs[2, 30:33, i], AlignedSeqs[2, 27:30, i])
 
 W4plot = np.zeros([W4Foot.shape[0],2])
 for i in range(0,W4plot.shape[0]):
     W4plot[i][0] = i
-    W4plot[i][1] = W4Foot[i]
+    W4plot[i][1] = angle(AlignedSeqs[3, 33:36, i],AlignedSeqs[3, 30:33, i], AlignedSeqs[3, 27:30, i])
 
 fig = plt.figure()
 ax = plt.axes()
@@ -314,22 +361,22 @@ W4Foot = AlignedRightForm[3, :]
 W1plot = np.zeros([W1Foot.shape[0],2])
 for i in range(0,W1plot.shape[0]):
     W1plot[i][0] = i
-    W1plot[i][1] = W1Foot[i]
+    W1plot[i][1] = angle(RightFormFull[0, 9:12, i],RightFormFull[0, 6:9, i], RightFormFull[0, 3:6, i])
 
 W2plot = np.zeros([W2Foot.shape[0],2])
 for i in range(0,W2plot.shape[0]):
     W2plot[i][0] = i
-    W2plot[i][1] = W2Foot[i]
+    W2plot[i][1] = angle(RightFormFull[1, 9:12, i],RightFormFull[1, 6:9, i], RightFormFull[1, 3:6, i])
 
 W3plot = np.zeros([W3Foot.shape[0],2])
 for i in range(0,W3plot.shape[0]):
     W3plot[i][0] = i
-    W3plot[i][1] = W3Foot[i]
+    W3plot[i][1] = angle(RightFormFull[2, 9:12, i],RightFormFull[2, 6:9, i], RightFormFull[2, 3:6, i])
 
 W4plot = np.zeros([W4Foot.shape[0],2])
 for i in range(0,W4plot.shape[0]):
     W4plot[i][0] = i
-    W4plot[i][1] = W4Foot[i]
+    W4plot[i][1] = angle(RightFormFull[3, 9:12, i],RightFormFull[3, 6:9, i], RightFormFull[3, 3:6, i])
 
 fig = plt.figure()
 ax = plt.axes()
@@ -345,18 +392,21 @@ distance, path = fastdtw(W1plot, W2plot, dist=euclidean, radius=15)
 NpPath = np.array(path)
 
 WSmasked = [W1Foot,W2Foot]
-
 distance, paths = dtw2.warping_paths(W3Foot, W2Foot)
 print(distance)
 best = dtw2.best_path(paths)
-dtwvis.plot_warpingpaths(W3Foot, W1Foot, paths,best)
+dtwvis.plot_warpingpaths(W3Foot, W2Foot, paths,best)
 # print(best)
 NpPath = np.array(best)
-
 distance, paths = dtw2.warping_paths(W2Foot, W1Foot)
 print(distance)
 best = dtw2.best_path(paths)
 dtwvis.plot_warpingpaths(W2Foot, W1Foot, paths,best)
+
+distance, paths = dtw2.warping_paths(W3Foot, W4Foot)
+print(distance)
+best = dtw2.best_path(paths)
+dtwvis.plot_warpingpaths(W3Foot, W4Foot, paths,best)
 # print(best)
 #NpPath = np.array(best)
 

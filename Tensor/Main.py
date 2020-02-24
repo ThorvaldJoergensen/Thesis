@@ -27,17 +27,11 @@ import matplotlib
 
 seqList, labelList, minNrFrames, medianNrFrames = Helpers.loadData()
 
-print(minNrFrames)
-print(seqList[0].shape)
-print(np.array(labelList).shape)
-
 
 seqList = AlignData.temporalLazy(seqList, medianNrFrames)
 seqList = AlignData.spatial(seqList)
 
 tensor = AlignData.createTensor(seqList, 45, medianNrFrames)
-
-print(tensor.shape)
 
 animation = Plotting.animate(tensor[:,120,:])
 plt.show()
@@ -52,29 +46,32 @@ action_names = np.array(mat.get('action_names')) # 12 entries
 # Load full tensor from matlab file
 tensor0 = tensor
 
-#Align Actions in tensor - maybe make loop parallel????
-for i, action in enumerate(action_names):
-    print('Now aligning: ',action_names[i])
-    tensor0[:,labels[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labels[:,0]==i+1,:],11)
-
-ani2 = Plotting.animate(tensor[:,4,:])
-plt.show()
 # Select a given subset of sequences
 if len(sys.argv) > 1:
-    sequence, labelsStacked = Helpers.getSequence(tensor0, labels, sys.argv[1])
+    tensor0, labelsStacked = Helpers.getSequence(tensor0, labels, sys.argv[1])
 else:
-    sequence, labelsStacked = Helpers.getSequence(tensor0, labels)
-print(sequence.shape)
+    tensor0, labelsStacked = Helpers.getSequence(tensor0, labels)
+print(tensor0.shape)
 
-if len(sequence) == 0:
+if len(tensor0) == 0:
     print('Error in sequence result, please choose a valid sequence. [All, oneEach, allRunWalk, fiveRunWalk, allRun, allWalk, allMoving, fiveBalancedUneven]')
     exit()
 
+#Align Actions in tensor - maybe make loop parallel????
+for i, action in enumerate(action_names):
+    if (tensor0[:,labelsStacked[:,0]==i+1,:].shape[1] > 0):
+        print('Now aligning: ',action_names[i][0][0])
+        tensor0[:,labelsStacked[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labelsStacked[:,0]==i+1,:],44)
+
+ani2 = Plotting.animate(tensor[:,4,:])
+plt.show()
+
+
 # Compute mean body shape from given sequences
-mean_tensor = Helpers.createMean(sequence)
+mean_tensor = Helpers.createMean(tensor0)
 
 # Compute new tensor from sequences and mean shape
-Tdiff = dtensor(sequence - mean_tensor)
+Tdiff = dtensor(tensor0 - mean_tensor)
 
 # Perform HOSVD on tensor to get subspaces
 U1,U2,U3,core_S = Helpers.svd(Tdiff)
@@ -85,11 +82,10 @@ Plotting.plotU2(U2, labelsStacked, action_names)
 Plotting.plotU3(U3)
 plt.show()
 
-data = np.concatenate((U2[36:72],U2[85:169]))
 data = U2
 labels1 = np.array(labelList)
 labels = np.concatenate((labels1[36:72],labels1[85:169]))
-labels = labels1
+labels = labelsStacked
 classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
 
 labels2 = []

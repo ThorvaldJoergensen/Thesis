@@ -1,0 +1,9 @@
+Right knee provided good representation for running even though scaling is not right
+
+Right foot good for representation both classes but not for distinguishing them
+
+Left hand bad for representation but good for distinguishing running because walking was really flat
+
+Angles between the right hand and right shoulder over the right elbow good for initial distinguishing between walk and run (if angle < 100: try running first)
+
+Angles between the foot and  hip over the knee, good for initial distinguishing between walk and run (if angle < 100: try running first)
