@@ -1,0 +1,13 @@
+Check list:
+    Verify that it still looks good 121 sequences check them after alignment
+        Thorvald [0:61]
+        Martin [61:]
+    Describe what we have done so far:
+        Spatial alignment - Thorvald
+            - Procrustes
+        Inital Temporal - Martin
+        DTW - Martin
+        Extended Temporal (Linear combinations) - Martin
+        DTW on 1d features - Thorvald
+    Clean-up code and comment - after alignemt is done
+    PCA : talk with Stella - Monday

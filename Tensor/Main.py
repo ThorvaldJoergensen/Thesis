@@ -61,7 +61,7 @@ if len(tensor0) == 0:
 for i, action in enumerate(action_names):
     if (tensor0[:,labelsStacked[:,0]==i+1,:].shape[1] > 0):
         print('Now aligning: ',action_names[i][0][0])
-        tensor0[:,labelsStacked[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labelsStacked[:,0]==i+1,:],44)
+        tensor0[:,labelsStacked[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labelsStacked[:,0]==i+1,:],8)
 
 ani2 = Plotting.animate(tensor[:,4,:])
 plt.show()
@@ -82,10 +82,11 @@ Plotting.plotU2(U2, labelsStacked, action_names)
 Plotting.plotU3(U3)
 plt.show()
 
-data = U2
+data = np.concatenate((U2[36:72],U2[85:169]))
+# data = U2
 labels1 = np.array(labelList)
 labels = np.concatenate((labels1[36:72],labels1[85:169]))
-labels = labelsStacked
+# labels = labels1
 classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
 
 labels2 = []

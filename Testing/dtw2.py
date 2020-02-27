@@ -167,7 +167,7 @@ def multiDTW(seqs, id):
             if i == j:
                 sim_matrix[i][j] = math.inf
             else:
-                distance = dtwalign(aligned[j],x,window_type="sakoechiba",window_size=int(min(aligned[JPos].shape[0], x.shape[0])/10), dist_only=True).distance
+                distance = dtwalign(aligned[j],x, window_type="sakoechiba", window_size=int(min(aligned[JPos].shape[0], x.shape[0])/10), dist_only=True).distance
                 sim_matrix[i][j] = distance
                 if distance < minDist:
                     minDist = distance
@@ -186,7 +186,7 @@ def multiDTW(seqs, id):
         # newISeqs, newJSeqs = scaleSeqs(aligned[JPos], AlignedSeqs[iPos, id, :])
         # _,paths = dtw2.warping_paths(aligned[JPos], AlignedSeqs[iPos, id, :], window=int(min(aligned[JPos].shape[0], AlignedSeqs[iPos,id,:].shape[0])/10))
         # res = dtwalign(newJSeqs, newISeqs, dist='matching')
-        res = dtwalign(aligned[JPos], AlignedSeqs[iPos, id, :],step_pattern="typeIa", window_size=43)
+        res = dtwalign(aligned[JPos], AlignedSeqs[iPos, id, :], step_pattern="typeIds", window_size=int(min(aligned[JPos].shape[0], x.shape[0])/10))
         path = res.get_warping_path(target="query")
         # path = np.array(dtw2.best_path(paths))
         JAligned = np.zeros([45,AlignedSeqs[iPos].shape[1]])
@@ -211,11 +211,10 @@ def multiDTW(seqs, id):
                             JPos = j
     return AlignedSeqs
     
-runAligned = multiDTW(np.array(RightFormFull), id)
-# walkAligned = multiDTW(np.array(RightFormFull[2:]), id)
+aligned = multiDTW(np.array(RightFormFull), id)
 
 
-AlignedSeqs = runAligned#np.concatenate((runAligned, walkAligned))
+AlignedSeqs = aligned#np.concatenate((runAligned, walkAligned))
 
 print(AlignedSeqs.shape)
 
@@ -345,6 +344,7 @@ for i in range(0,W4plot.shape[0]):
     W4plot[i][0] = i
     W4plot[i][1] = W4Foot[i]
 
+testArray = []
 
 fig, (ax1, ax2) = plt.subplots(1,2,figsize=(20,5))
 for i in range(0, AlignedSeqs.shape[0]):
@@ -353,14 +353,22 @@ for i in range(0, AlignedSeqs.shape[0]):
     for j in range(0,plot1.shape[0]):
         plot1[j][0] = j
         plot1[j][1] = AlignedSeqs[i, id, j]
+        # plot1[j][1] = angle(AlignedSeqs[i, 33:36, j],AlignedSeqs[i, 30:33, j], AlignedSeqs[i, 27:30, j]) #Arm
+        # plot1[j][1] = angle(AlignedSeqs[i, 9:12, j],AlignedSeqs[i, 6:9, j], AlignedSeqs[i, 3:6, j]) #Leg
         plot2[j][0] = j
         plot2[j][1] = AlignedRightForm[i, j]
     
     ax1.plot(plot1[:,0], plot1[:,1], label=i)    
     ax2.plot(plot2[:,0], plot2[:,1], label=i)
 
+    testArray.append(np.nanmin(plot1[:,1]))
+
 plt.legend()
 plt.show()
+
+print(np.max(np.array(testArray)))
+# for i, x in enumerate(plot1[:,1]):
+
     
 
 # W1plot = np.zeros([W1Foot.shape[0], 2])
@@ -444,13 +452,13 @@ plt.show()
 # plt.show()
 
 
-res = dtwalign(W3plot, W2plot, dist='correlation')
+res = dtwalign(W3plot, W2plot, window_type="sakoechiba",step_pattern="typeIds", window_size=43)
 res.plot_path()
 
-res = dtwalign(W2Foot, W1Foot, dist='correlation')
+res = dtwalign(W2Foot, W1Foot, window_type="sakoechiba",step_pattern="typeIds", window_size=43)
 res.plot_path()
 
-res = dtwalign(W3Foot, W4Foot, dist='correlation')
+res = dtwalign(W3Foot, W4Foot, window_type="sakoechiba",step_pattern="typeIds", window_size=43)
 res.plot_path()
 # NpPath = np.array(path)
 
