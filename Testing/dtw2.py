@@ -79,7 +79,7 @@ import AlignData
 # dtw(seq2, seq1, keep_internals=True, 
 #     step_pattern=rabinerJuangStepPattern(6, "c"))\
 #     .plot(type="twoway",offset=-2)
-id = 11
+id = 8
 
 seqList, labels, minNrFrames, medianNrFrames = Helpers.loadData()
 seqList = AlignData.temporalLazy(seqList, medianNrFrames)
@@ -99,7 +99,7 @@ print(maxRunFrames)
 framesToAlignTo = min(maxWalkFrames, maxRunFrames)
 Aligned = np.array([runSeqs[3],runSeqs[24],walkSeqs[2],walkSeqs[42]])
 Aligned = np.concatenate((runSeqs, walkSeqs))
-# Aligned = walkSeqs
+Aligned = runSeqs
 
 Aligned = AlignData.spatial(Aligned)
 AlignedRightForm = []
