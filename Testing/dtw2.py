@@ -98,8 +98,9 @@ print(maxWalkFrames)
 print(maxRunFrames)
 framesToAlignTo = min(maxWalkFrames, maxRunFrames)
 Aligned = np.array([runSeqs[3],runSeqs[24],walkSeqs[2],walkSeqs[42]])
-Aligned = np.concatenate((runSeqs, walkSeqs))
 Aligned = runSeqs
+# Aligned = walkSeqs
+# Aligned = np.concatenate((walkSeqs, runSeqs))
 
 Aligned = AlignData.spatial(Aligned)
 AlignedRightForm = []
@@ -452,13 +453,13 @@ print(np.max(np.array(testArray)))
 # plt.show()
 
 
-res = dtwalign(W3plot, W2plot, window_type="sakoechiba",step_pattern="typeIds", window_size=43)
+res = dtwalign(W3plot, W2plot, window_type="sakoechiba",step_pattern="typeIds")
 res.plot_path()
 
-res = dtwalign(W2Foot, W1Foot, window_type="sakoechiba",step_pattern="typeIds", window_size=43)
+res = dtwalign(W2Foot, W1Foot, window_type="sakoechiba",step_pattern="typeIds")
 res.plot_path()
 
-res = dtwalign(W3Foot, W4Foot, window_type="sakoechiba",step_pattern="typeIds", window_size=43)
+res = dtwalign(W3Foot, W4Foot, window_type="sakoechiba",step_pattern="typeIds")
 res.plot_path()
 # NpPath = np.array(path)
 
