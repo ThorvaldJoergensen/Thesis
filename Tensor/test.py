@@ -1,64 +1,65 @@
 import numpy as np
+import numpy.matlib
 import sys
 from scipy.io.matlab import loadmat
-from sktensor import dtensor, cp_als
-from sktensor.tucker import hosvd
-import mpl_toolkits.mplot3d as plt3d
-import matplotlib.animation as animation
+from sktensor import dtensor
 import matplotlib.pyplot as plt
-from matplotlib import cm
-import glob, os, math
+# insert at 1, 0 is the script path (or '' in REPL)
+sys.path.insert(1, '../Testing')
+sys.path.insert(1, '../')
 
-os.chdir('../body/data_complete')
-x = glob.glob('*/*.mat')
+import Helpers
+import AlignData
+import Plotting
 
-seqList = []
-labelList = []
-minNrFrames = math.inf
+import pandas as pd
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
-for filename in x:
-    seq = loadmat(filename)
-    label = filename[:filename.find('\\')]
-    labelList.append(label)
-    W = np.array(seq.get('W'))
-    if W.shape[0] == 1:
-        W = W[0][0]
-    seqList.append(W)
-    if (W.shape[0]/3 < minNrFrames):
-        minNrFrames = int(W.shape[0]/3)
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from skimage import measure
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib.patches as mpatches
+import matplotlib
 
-print(minNrFrames)
-print(np.array(seqList)[0].shape)
-print(np.array(labelList).shape)
-
-tensor = np.zeros([45, 225, minNrFrames])
-
-testList = []
-for i, seq in enumerate(seqList):
-    frameToTake = int(int(seq.shape[0]/3)/minNrFrames)
-    newFrames = np.zeros([minNrFrames*3,15])
-    for j in range(0, minNrFrames*3, 3):
-        newFrames[j] = seq[j*frameToTake]
-        newFrames[j+1] = seq[j*frameToTake+1]
-        newFrames[j+2] = seq[j*frameToTake+2]
-    testList.append(newFrames)
+seqList, labelList, minNrFrames, medianNrFrames = Helpers.loadData()
 
 
-for i, seq in enumerate(testList):
-    W3 = np.zeros([45, minNrFrames])
-    for j in range(0, minNrFrames):
-        k = 3*j
-        shape = seq[k:k+3,:]
-        points = np.zeros([45])
-        for l in range(0, 15):
-            points[l*3] = shape[0][l]
-            points[(l*3)+2] = shape[1][l]
-            points[(l*3)+1] = shape[2][l]
-        W3[:, j] = points
-    tensor[:, i,:] = W3
+seqList = AlignData.temporalLazy(seqList, medianNrFrames)
+seqList = AlignData.spatial(seqList)
 
+tensor = AlignData.createTensor(seqList, 45, medianNrFrames)
 
-tensor = dtensor(tensor)
+# Load data from .mat file
+mat = loadmat('../data_tensor.mat')
+
+# Extract previously saved data
+labels = np.array(mat.get('labels')) # 225 entries
+action_names = np.array(mat.get('action_names')) # 12 entries
+
+# Load full tensor from matlab file
+tensor0 = tensor
+
+# Select a given subset of sequences
+if len(sys.argv) > 1:
+    tensor0, labelsStacked = Helpers.getSequence(tensor0, labels, sys.argv[1])
+else:
+    tensor0, labelsStacked = Helpers.getSequence(tensor0, labels)
+print(tensor0.shape)
+
+if len(tensor0) == 0:
+    print('Error in sequence result, please choose a valid sequence. [All, oneEach, allRunWalk, fiveRunWalk, allRun, allWalk, allMoving, fiveBalancedUneven]')
+    exit()
+
+#Align Actions in tensor - maybe make loop parallel????
+for i, action in enumerate(action_names):
+    if (tensor0[:,labelsStacked[:,0]==i+1,:].shape[1] > 0):
+        print('Now aligning: ',action_names[i][0][0])
+        tensor0[:,labelsStacked[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labelsStacked[:,0]==i+1,:],8)
+
+tensor = np.concatenate((tensor0[:,36:72,:], tensor0[:, 85:169,:]))
 
 # U, S = hosvd(tensor, [45, 225, 128])
 
@@ -273,11 +274,11 @@ def animate3(array1, array2):
 
     plt.show()
 
-for i, seq in enumerate(seqList[113:]):
+for i, seq in enumerate(seqList[:61]):
     print(i+113)
 
     
-    animation1 = animate(tensor[:,i+113,:])
+    animation1 = animate(tensor[:,i,:])
     animation1._start
 
     animation2 = animate2(seq)

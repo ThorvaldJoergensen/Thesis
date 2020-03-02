@@ -483,36 +483,15 @@ res.plot_path()
 #NpPath = np.array(best)
 
 plt.show()
-# distance = dtw2.distance_matrix_fast(WSmasked)
-# print(distance)
-# #print(NpPath)
 
-# #print(NpPath)
+# for i, seq in enumerate(RightFormFull[:61]):
+#     print(i)
 
-# W1Aligned = np.zeros([45,W2plot.shape[0]])
-# for i in range(0,W2plot.shape[0]):
-#     W1Aligned[:,i] = AlignedSeqs[1, :,int(NpPath[i][1])]
-# # print("distance: ",distance)
-# # print(path)
+    
+#     animation1 = Plotting.animate(AlignedSeqs[i])
+#     animation1._start
 
-# W3Aligned = np.zeros([45,W3plot.shape[0]])
-# for i in range(0,W3plot.shape[0]):
-#     W3Aligned[:,i] = AlignedSeqs[2, :,int(NpPath[i][0])]
+#     animation2 = Plotting.animate(RightFormFull[i])
+#     animation2._start
 
-
-# # alignment = dtw(W1Foot, W2Foot, keep_internals=True)
-
-# # ## Display the warping curve, i.e. the alignment curve
-# # alignment.plot(type="threeway")
-
-# # ## Align and plot with the Rabiner-Juang type VI-c unsmoothed recursion
-# # dtw(W1Foot, W2Foot, keep_internals=True, 
-# #     step_pattern=rabinerJuangStepPattern(6, "c"))\
-# #     .plot(type="twoway",offset=-2)
-
-
-# ani1 = Plotting.animate(W1Aligned)
-
-# ani2 = Plotting.animate(W3Aligned)
-
-# plt.show()
+#     plt.show()

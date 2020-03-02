@@ -1,0 +1,11 @@
+8 - Stuttering a bit between frames
+10 - This start with t-pose and is very slow in the first ~150 frames
+14 - Stuttering and slow movements at some points
+15 - Stuttering and slow movements at some points
+16 - Near perfect match 
+22 - Stopping for some frames
+26 - Near perfect match
+41 - Stuttering a bit
+49 - Stuttering towards the end
+51 - Perfect match
+57 - Stuttering towards the end
