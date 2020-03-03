@@ -79,10 +79,10 @@ import AlignData
 # dtw(seq2, seq1, keep_internals=True, 
 #     step_pattern=rabinerJuangStepPattern(6, "c"))\
 #     .plot(type="twoway",offset=-2)
-id = 8
+id = 11
 
 seqList, labels, minNrFrames, medianNrFrames = Helpers.loadData()
-seqList = AlignData.temporalLazy(seqList, medianNrFrames)
+seqList = AlignData.temporalLazy(seqList, 1316)
 print(seqList.shape)
 runSeqs = seqList[36:72]
 walkSeqs = seqList[85:169]
@@ -178,7 +178,7 @@ def multiDTW(seqs, id):
                     JPos = j
 
     print("Id's: ", iPos, JPos)
-    print(sim_matrix)
+    #print(sim_matrix)
     AlignedSeqs = np.zeros([aligned.shape[0],45,aligned[iPos].shape[0]])
     AlignedSeqs[iPos,:,:] = seqs[iPos]
     AlignedIds = [iPos]
