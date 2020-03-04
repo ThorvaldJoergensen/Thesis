@@ -5,6 +5,7 @@ import sys
 import mpl_toolkits.mplot3d as plt3d
 import matplotlib.animation as animation
 import math
+import copy
 
 from fastdtw import fastdtw
 from dtaidistance import dtw as dtw2
@@ -58,6 +59,27 @@ for j in range(0,int(len(ShortestWalk)/3)):
         points[(l*3)+1] = shape[2][l]
     ShortestWalkNP[:,j] = points
 
+Aligned = np.concatenate((walkSeqs, runSeqs))
+Aligned = runSeqs
+Aligned = AlignData.spatial(Aligned)
+AlignedRightForm = []
+RightFormFull = []
+for i, x in enumerate(Aligned):
+    W1copy = np.zeros([45, int(x.shape[0]/3)])
+    for j in range(0,int(x.shape[0]/3)):
+        k = 3*j
+        shape = x[k:k+3,:]
+        points = np.zeros([45])
+        for l in range(0,15):
+            points[l*3] = shape[0][l]
+            points[(l*3)+2] = shape[1][l]
+            points[(l*3)+1] = shape[2][l]
+        W1copy[:,j] = points
+    AlignedRightForm.append(W1copy[id,:])
+    RightFormFull.append(W1copy)
+# AlignedRightForm = np.array(AlignedRightForm)
+# RightFormFull = np.array(RightFormFull)
+
 ShortestRunOneId = ShortestRunNP[id,:]
 ShortestWalkOneId = ShortestWalkNP[id,:]
 
@@ -104,108 +126,163 @@ for j in range(0,int(len(turnSeq2)/3)):
 # ani._start
 turnSeqOneId = turnSeqNP[id,:]
 turnSeq2OneId = turnSeq2NP[id,:]
-fig2 = plt.figure()
-ax2 = plt.axes()
-ax2.plot(turnSeqOneId, c="r")
-ax2.plot(turnSeq2OneId, c = "y")
-plt.show()
+# fig2 = plt.figure()
+# ax2 = plt.axes()
+# ax2.plot(turnSeqOneId, c="r")
+# ax2.plot(turnSeq2OneId, c = "y")
+# plt.show()
 
 y1 = turnSeq2OneId
 
-shift = int(y1.shape[0]/100)
-print("Shift: ",shift)
-window_size = int(y1.shape[0]/10)
-print("Window Size: ", window_size)
-threshold = np.var(y1)
-chuncklist = []
-avg_y1 = np.average(y1)
-print(avg_y1)
-print("Variance af hele lortet: ",np.var(y1))
-while True:
-    for i in range(0,y1.shape[0],shift):
-        y1_window = y1[i:(i+window_size)]
-        variance = np.var(y1_window)
-        if variance >= threshold:
-            pass_counter = 0
-            for x in y1_window:
-                if x < avg_y1 and (pass_counter == 0 or pass_counter == 2):
-                    pass_counter = pass_counter +1
-                elif x > avg_y1 and pass_counter == 1:
-                    pass_counter = pass_counter +1
-            if pass_counter >= 3:
-                chuncklist.append((i,y1_window))
-    if len(chuncklist) >= 1:
-        print(window_size)
-        break
-    if window_size >= y1.shape[0]:
-        raise Exception("lorrrrrrt")
-    window_size = window_size+shift
+def findSteps(seq):
+    secondApproach = False
+    print("Shape:", seq.shape)
+    shift = int(seq.shape[0]/20)
+    print("Shift: ",shift)
+    window_size = int(seq.shape[0]/5)
+    print("Window Size: ", window_size)
+    threshold = np.var(seq)
+    print(np.var(seq[65:126]))
+    chuncklist = []
+    avg_seq = np.average(seq)
+    print(avg_seq)
+    print("Variance af hele lortet: ",np.var(seq))
+    while True:
+        for i in range(0,seq.shape[0],shift):
+            seq_window = seq[i:(i+window_size)]
+            variance = np.var(seq_window)
+            if variance >= threshold/2:
+                pass_counter = 0
+                for x in seq_window:
+                    if ((not secondApproach and x > avg_seq) or (secondApproach and x < avg_seq)) and (pass_counter == 0 or pass_counter == 2):
+                        pass_counter = pass_counter +1
+                    elif ((not secondApproach and x < avg_seq) or (secondApproach and x > avg_seq)) and (pass_counter == 1 or pass_counter == 3):
+                        pass_counter = pass_counter +1
+                if pass_counter >= 4:
+                    chuncklist.append((i,seq_window))
+        if len(chuncklist) >= 2:
+            print(window_size)
+            break
+        if window_size >= seq.shape[0]:
+            secondApproach = True
+            window_size = int(seq.shape[0]/5)
+        window_size = window_size+shift
 
-FirstofChunk = []
-LastofChunk = []
-for x in chuncklist:
-    FirstofChunk.append(x[0])
-    LastofChunk.append(x[0]+window_size)
-    # print(x)
-print(FirstofChunk)
-print(LastofChunk)
-FinalFirst = []
-FinalLast = []
+    FirstofChunk = []
+    LastofChunk = []
+    for x in chuncklist:
+        FirstofChunk.append(x[0])
+        LastofChunk.append(x[0]+window_size)
+        # print(x)
+    print(FirstofChunk)
+    print(LastofChunk)
+    FirstofChunk.sort()
+    LastofChunk.sort()
+    FinalFirst = []
+    FinalLast = []
 
-for i, val in enumerate(FirstofChunk):
-    if i != 0 and FirstofChunk[i-1] >= val-shift:
-        continue
-    else:
-        FinalFirst.append(val)
+    for i, val in enumerate(FirstofChunk):
+        if i != 0 and FirstofChunk[i-1] >= val-shift:
+            continue
+        else:
+            FinalFirst.append(val)
 
-for i, val in enumerate(LastofChunk):
-    if i < len(LastofChunk)-1 and LastofChunk[i+1] <= val+shift:
-        continue
-    else:
-        FinalLast.append(val)
-popIndexes = []
-for i, val in enumerate(FinalFirst):
-    for j in range(0,i):
-        if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
-            FinalFirst[i] = FinalLast[j]
-        elif val < FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
-            FinalFirst.pop(i)
-            FinalLast.pop(i)
-print(FinalFirst)
-print(FinalLast)
-fig = plt.figure()
-ax = plt.axes()
-ax.plot(y1,c="b", label="1")
-ax.scatter(FinalFirst,np.full([len(FinalFirst)],-33), c="g")
-ax.scatter(FinalLast,np.full([len(FinalLast)],-33), c="r")
-# ax.plot(y22[:,0],y22[:,1],c="g", label="2")
+    for i, val in enumerate(LastofChunk):
+        if i < len(LastofChunk)-1 and LastofChunk[i+1] <= val+shift:
+            continue
+        else:
+            FinalLast.append(val)
+
+    for i, val in enumerate(FinalFirst):
+        for j in range(0,i):
+            if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+                FinalFirst[i] = FinalLast[j]
+            elif val < FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+                FinalFirst.pop(i)
+                FinalLast.pop(i)
+    
+    print(FinalFirst)
+    print(FinalLast)
+    return FinalFirst, FinalLast, secondApproach
+
+stepSeqs = []
+
+for i in range(0, 10):
+    finalFirst, finalLast, secondApproach = findSteps(np.array(AlignedRightForm[i]))
+
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # ax.plot(AlignedRightForm[i],c="b", label="1")
+    # ax.scatter(finalFirst,np.full([len(finalFirst)],-33), c="g")
+    # ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
+    # # ax.plot(y22[:,0],y22[:,1],c="g", label="2")
+    # plt.show()
+
+    for j, x in enumerate(finalFirst):
+        temp = np.array(RightFormFull[i][:])
+        # if secondApproach:
+        #     temp = np.flip(temp, axis=1)
+        # ani = Plotting.animate(temp[:,x:finalLast[j]])
+        # ani._start
+        # plt.show()
+        stepSeqs.append([i, temp[:,x:finalLast[j]]])
+
+longestId = -1
+maxLength = -1
+for i, x in enumerate(stepSeqs):
+    if len(x[1][0]) > maxLength:
+        maxLength = len(x[1][0])
+        longestId = i
+
+originalSteps = copy.deepcopy(stepSeqs)
+
+# Mindre sequence skal være query, altså først i metode kaldet
+for i, x in enumerate(stepSeqs):
+    res = dtwalign(x[1][id,:], stepSeqs[longestId][1][id,:],step_pattern="typeIVc")
+    # res.plot_path()
+
+    y22path = res.get_warping_path(target="query")
+    y12path = res.path[:,1]
+    # y12path = res.get_warping_path(target="reference")
+    stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
+    temp = np.array(RightFormFull[stepSeqs[i][0]][:])
+    # ani = Plotting.animate(temp[:,res.get_warping_path(target="query")])
+    # ani._start
+    # plt.show()
+
+fig, (ax1, ax2) = plt.subplots(1,2,figsize=(20,5))
+for i, x in enumerate(stepSeqs):
+    from scipy.signal import savgol_filter
+    yhat = savgol_filter(x[1][id,:], 51, 3) # window size 51, polynomial order 3
+    ax1.plot(yhat)    
+    ax2.plot(originalSteps[i][1][id,:])    
 plt.show()
 
 
-var1 = np.var(turnSeq2OneId[200:500])
-var2 = np.var(turnSeq2OneId[500:700])
-print(var1)
-print(var2)
 
-turnSeqNPLastPart = turnSeqOneId[600:]
-turnSeq2NPLastPart = turnSeq2OneId[700:]
-res = dtwalign(turnSeqNPLastPart, turnSeq2NPLastPart,step_pattern="asymmetric", open_begin=True)
-res.plot_path()
-print(res.path)
+# var1 = np.var(turnSeq2OneId[200:500])
+# var2 = np.var(turnSeq2OneId[500:700])
+# print(var1)
+# print(var2)
 
-y22path = res.path[:,0]
-y12path = res.path[:,1]
-# y12path = res.get_warping_path(target="reference")
+# turnSeqNPLastPart = turnSeqOneId[600:]
+# turnSeq2NPLastPart = turnSeq2OneId[700:]
+# res = dtwalign(turnSeqNPLastPart, turnSeq2NPLastPart,step_pattern="asymmetric", open_begin=True)
+# res.plot_path()
 
-plt.plot(turnSeqNPLastPart[y22path], c="g")
-plt.plot(turnSeq2NPLastPart[y12path],c="b")
-plt.show()
+# y22path = res.path[:,0]
+# y12path = res.path[:,1]
+# # y12path = res.get_warping_path(target="reference")
 
-turnseqoneAligned = turnSeqNP[:,599+res.path[:,0]]
-turnseq2Aligned = turnSeq2NP[:,699+res.path[:,1]]
+# plt.plot(turnSeqNPLastPart[y22path], c="g")
+# plt.plot(turnSeq2NPLastPart[y12path],c="b")
+# plt.show()
 
-ani2 = Plotting.animate(turnseqoneAligned)
-ani3 = Plotting.animate(turnseq2Aligned)
-ani2._start
-ani3._start
-plt.show()
+# turnseqoneAligned = turnSeqNP[:,599+res.path[:,0]]
+# turnseq2Aligned = turnSeq2NP[:,699+res.path[:,1]]
+
+# ani2 = Plotting.animate(turnseqoneAligned)
+# ani3 = Plotting.animate(turnseq2Aligned)
+# ani2._start
+# ani3._start
+# plt.show()

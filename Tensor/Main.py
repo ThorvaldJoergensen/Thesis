@@ -66,6 +66,24 @@ for i, action in enumerate(action_names):
 ani2 = Plotting.animate(tensor[:,4,:])
 plt.show()
 
+fig, (ax1, ax2) = plt.subplots(1,2,figsize=(20,5))
+for i in range(0, tensor0.shape[1]):
+    plot1 = np.zeros([tensor0[:,i,id].shape[0],2])
+    plot2 = np.zeros([tensor0[:,i,id].shape[0],2])
+    for j in range(0,plot1.shape[0]):
+        plot1[j][0] = j
+        plot1[j][1] = tensor0[:,i, id, j]
+        # plot1[j][1] = angle(AlignedSeqs[i, 33:36, j],AlignedSeqs[i, 30:33, j], AlignedSeqs[i, 27:30, j]) #Arm
+        # plot1[j][1] = angle(AlignedSeqs[i, 9:12, j],AlignedSeqs[i, 6:9, j], AlignedSeqs[i, 3:6, j]) #Leg
+        plot2[j][0] = j
+        plot2[j][1] = tensor0[:,i, j]
+    
+    ax1.plot(plot1[:,0], plot1[:,1], label=i)    
+    ax2.plot(plot2[:,0], plot2[:,1], label=i)
+
+plt.legend()
+plt.show()
+
 
 # Compute mean body shape from given sequences
 mean_tensor = Helpers.createMean(tensor0)

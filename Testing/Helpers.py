@@ -119,7 +119,96 @@ def loadData():
     medianNrFrames = np.median(sizes)
     return seqList, labelList, minNrFrames, int(medianNrFrames)
 
+def findSteps(seq):
+    secondApproach = False
+    shift = int(seq.shape[0]/20)
+    window_size = int(seq.shape[0]/5)
+    threshold = np.var(seq)
+    chuncklist = []
+    avg_seq = np.average(seq)
+    while True:
+        for i in range(0,seq.shape[0],shift):
+            seq_window = seq[i:(i+window_size)]
+            variance = np.var(seq_window)
+            if variance >= threshold/2:
+                pass_counter = 0
+                for x in seq_window:
+                    if ((not secondApproach and x > avg_seq) or (secondApproach and x < avg_seq)) and (pass_counter == 0 or pass_counter == 2):
+                        pass_counter = pass_counter +1
+                    elif ((not secondApproach and x < avg_seq) or (secondApproach and x > avg_seq)) and (pass_counter == 1 or pass_counter == 3):
+                        pass_counter = pass_counter +1
+                if pass_counter >= 4:
+                    chuncklist.append((i,seq_window))
+        if len(chuncklist) >= 2:
+            break
+        if window_size >= seq.shape[0]:
+            secondApproach = True
+            window_size = int(seq.shape[0]/5)
+        window_size = window_size+shift
+
+    FirstofChunk = []
+    LastofChunk = []
+    for x in chuncklist:
+        FirstofChunk.append(x[0])
+        LastofChunk.append(x[0]+window_size)
+    FirstofChunk.sort()
+    LastofChunk.sort()
+    FinalFirst = []
+    FinalLast = []
+
+    for i, val in enumerate(FirstofChunk):
+        if i != 0 and FirstofChunk[i-1] >= val-shift:
+            continue
+        else:
+            FinalFirst.append(val)
+
+    for i, val in enumerate(LastofChunk):
+        if i < len(LastofChunk)-1 and LastofChunk[i+1] <= val+shift:
+            continue
+        else:
+            FinalLast.append(val)
+
+    for i, val in enumerate(FinalFirst):
+        for j in range(0,i):
+            if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+                FinalFirst[i] = FinalLast[j]
+            elif val < FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+                FinalFirst.pop(i)
+                FinalLast.pop(i)
+    return FinalFirst, FinalLast
+
 def multiDTW(seqs, id):
+    aligned = []
+    for i in range(0, seqs.shape[1]):
+        aligned.append(seqs[id, i, :])
+    
+    
+    for i, x in enumerate(aligned):
+        stepSeqs = []
+        finalFirst, finalLast = findSteps(np.array(aligned[i]))
+        for j, x in enumerate(finalFirst):
+            temp = np.array(seqs[i][:])
+            stepSeqs.append([i, temp[:,x:finalLast[j]]])
+
+    longestId = -1
+    maxLength = -1
+    for i, x in enumerate(stepSeqs):
+        if len(x[1][0]) > maxLength:
+            maxLength = len(x[1][0])
+            longestId = i
+
+    for i, x in enumerate(stepSeqs):
+        res = dtwalign(x[1][id,:], stepSeqs[longestId][1][id,:],step_pattern="typeIcs")
+        # res.plot_path()
+
+        y22path = res.get_warping_path(target="query")
+        y12path = res.path[:,1]
+        # y12path = res.get_warping_path(target="reference")
+        stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
+    
+    return stepSeqs[:,1]
+
+def multiDTW_new_old(seqs, id):
     aligned = []
     for i in range(0, seqs.shape[1]):
         aligned.append(seqs[id, i, :])

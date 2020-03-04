@@ -4,9 +4,9 @@ import math
 import matplotlib.pyplot as plt
 
 
-x = np.linspace(-np.pi,2.5*np.pi,100)
+x = np.linspace(-np.pi,0,100)
 y1 = np.sin(x)
-xtest = np.linspace(-np.pi,0,25)
+xtest = np.linspace(-np.pi,0,50)
 y2 = np.sin(xtest)
 
 x2 = np.zeros([x.shape[0],2])
@@ -23,18 +23,18 @@ for i in range(0,x2.shape[0]):
 # for j in range(0,y2.shape[0]):
 #     y22[j][0] = j
 #     y22[j][1] = y2[j]-1
-# Mindre sequence skal være query, altså først i metode kaldet
-# res = dtwalign(y2, y1,step_pattern="asymmetric", open_begin=True)
-# res.plot_path()
-# print(res.path)
+#Mindre sequence skal være query, altså først i metode kaldet
+res = dtwalign(y2, y1,step_pattern="asymmetric", open_begin=True)
+res.plot_path()
+print(res.path)
 
-# y22path = res.path[:,0]
-# y12path = res.path[:,1]
-# # y12path = res.get_warping_path(target="reference")
+y22path = res.path[:,0]
+y12path = res.path[:,1]
+# y12path = res.get_warping_path(target="reference")
 
-# plt.plot(y2[y22path], c="g")
-# plt.plot(y1[y12path],c="b")
-# plt.show()
+plt.plot(y2[y22path], c="g")
+plt.plot(y1[y12path],c="b")
+plt.show()
 
 shift = 5
 window_size = int(y1.shape[0]/5)
