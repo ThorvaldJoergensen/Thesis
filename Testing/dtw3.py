@@ -61,6 +61,7 @@ for j in range(0,int(len(ShortestWalk)/3)):
 
 Aligned = np.concatenate((walkSeqs, runSeqs))
 Aligned = runSeqs
+Aligned = walkSeqs
 Aligned = AlignData.spatial(Aligned)
 AlignedRightForm = []
 RightFormFull = []
@@ -136,34 +137,42 @@ y1 = turnSeq2OneId
 
 def findSteps(seq):
     secondApproach = False
-    print("Shape:", seq.shape)
+    # print("Shape:", seq.shape)
     shift = int(seq.shape[0]/20)
-    print("Shift: ",shift)
-    window_size = int(seq.shape[0]/5)
-    print("Window Size: ", window_size)
+    # print("Shift: ",shift)
+    window_size = int(seq.shape[0]/10)
+    # print("Window Size: ", window_size)
     threshold = np.var(seq)
-    print(np.var(seq[65:126]))
+    # print(np.var(seq[65:126]))
     chuncklist = []
     avg_seq = np.average(seq)
-    print(avg_seq)
-    print("Variance af hele lortet: ",np.var(seq))
+    print("avg_seq: ", avg_seq)
+    print("std: ", np.std(seq))
+    # print("Variance af hele lortet: ",np.var(seq))
     while True:
         for i in range(0,seq.shape[0],shift):
             seq_window = seq[i:(i+window_size)]
             variance = np.var(seq_window)
-            if variance >= threshold/2:
+            if variance >= threshold*0.9:
                 pass_counter = 0
                 for x in seq_window:
-                    if ((not secondApproach and x > avg_seq) or (secondApproach and x < avg_seq)) and (pass_counter == 0 or pass_counter == 2):
-                        pass_counter = pass_counter +1
-                    elif ((not secondApproach and x < avg_seq) or (secondApproach and x > avg_seq)) and (pass_counter == 1 or pass_counter == 3):
-                        pass_counter = pass_counter +1
-                if pass_counter >= 4:
+                    if (not secondApproach and ((x < avg_seq and pass_counter == 0) or (x < avg_seq and pass_counter == 2))) or (secondApproach and ((x > avg_seq and pass_counter == 0) or (x > avg_seq and pass_counter == 2))):
+                        pass_counter += 1
+                    if (not secondApproach and (x > avg_seq and pass_counter == 1)) or (secondApproach and (x < avg_seq and pass_counter == 1)):
+                        pass_counter += 1
+                    
+                    # if ((not secondApproach and x > avg_seq) or (secondApproach and x < avg_seq)) and (pass_counter == 0 or pass_counter == 2):
+                    #     pass_counter = pass_counter +1
+                    # elif ((not secondApproach and x < avg_seq) or (secondApproach and x > avg_seq)) and (pass_counter == 1 or pass_counter == 3):
+                    #     pass_counter = pass_counter +1
+                if pass_counter >= 3:
                     chuncklist.append((i,seq_window))
         if len(chuncklist) >= 2:
-            print(window_size)
+            # print(window_size)
             break
         if window_size >= seq.shape[0]:
+            if secondApproach and len(chuncklist) == 0:
+                raise RuntimeError("No steps found")
             secondApproach = True
             window_size = int(seq.shape[0]/5)
         window_size = window_size+shift
@@ -174,8 +183,8 @@ def findSteps(seq):
         FirstofChunk.append(x[0])
         LastofChunk.append(x[0]+window_size)
         # print(x)
-    print(FirstofChunk)
-    print(LastofChunk)
+    # print(FirstofChunk)
+    # print(LastofChunk)
     FirstofChunk.sort()
     LastofChunk.sort()
     FinalFirst = []
@@ -192,31 +201,35 @@ def findSteps(seq):
             continue
         else:
             FinalLast.append(val)
-
+            
     for i, val in enumerate(FinalFirst):
-        for j in range(0,i):
+        for j in range(0, i):
             if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
                 FinalFirst[i] = FinalLast[j]
-            elif val < FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+            if val < FinalFirst[i-1]+((FinalLast[i-1] - FinalFirst[i-1])/2):
                 FinalFirst.pop(i)
                 FinalLast.pop(i)
+            # elif :
+            #    start = finalFirst
+            #    end = finalLast[i] 
     
-    print(FinalFirst)
-    print(FinalLast)
+    # print(FinalFirst)
+    # print(FinalLast)
     return FinalFirst, FinalLast, secondApproach
 
 stepSeqs = []
 
-for i in range(0, 10):
+for i in range(0, Aligned.shape[0]):
     finalFirst, finalLast, secondApproach = findSteps(np.array(AlignedRightForm[i]))
-
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # ax.plot(AlignedRightForm[i],c="b", label="1")
-    # ax.scatter(finalFirst,np.full([len(finalFirst)],-33), c="g")
-    # ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
-    # # ax.plot(y22[:,0],y22[:,1],c="g", label="2")
-    # plt.show()
+    if i in [0, 17, 35,36,37]:
+        fig = plt.figure()
+        ax = plt.axes()
+        ax.plot(AlignedRightForm[i],c="b", label="1")
+        ax.scatter(finalFirst,np.full([len(finalFirst)],-33), c="g")
+        ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
+        ax.axhline(np.average(AlignedRightForm[i]), c="black")
+        # ax.plot(y22[:,0],y22[:,1],c="g", label="2")
+        plt.show()
 
     for j, x in enumerate(finalFirst):
         temp = np.array(RightFormFull[i][:])
@@ -225,7 +238,7 @@ for i in range(0, 10):
         # ani = Plotting.animate(temp[:,x:finalLast[j]])
         # ani._start
         # plt.show()
-        stepSeqs.append([i, temp[:,x:finalLast[j]]])
+        stepSeqs.append([(i,finalFirst[j],finalLast[j]), temp[:,x:finalLast[j]]])
 
 longestId = -1
 maxLength = -1
@@ -234,27 +247,42 @@ for i, x in enumerate(stepSeqs):
         maxLength = len(x[1][0])
         longestId = i
 
+print("LongestId: ", longestId)
+
 originalSteps = copy.deepcopy(stepSeqs)
 
+alignedSteps = []
 # Mindre sequence skal være query, altså først i metode kaldet
 for i, x in enumerate(stepSeqs):
+    if i == longestId:
+        alignedSteps.append(x[1])
+        continue
+    
+    # fig, (ax1, ax2) = plt.subplots(1,2,figsize=(20,5))
+    # ax1.plot(x[1][id,:])    
+    # ax2.plot(originalSteps[longestId][1][id,:])    
+    # plt.show()
     res = dtwalign(x[1][id,:], stepSeqs[longestId][1][id,:],step_pattern="typeIVc")
     # res.plot_path()
 
-    y22path = res.get_warping_path(target="query")
-    y12path = res.path[:,1]
     # y12path = res.get_warping_path(target="reference")
     stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
-    temp = np.array(RightFormFull[stepSeqs[i][0]][:])
-    # ani = Plotting.animate(temp[:,res.get_warping_path(target="query")])
+    
+    temp = np.array(RightFormFull[stepSeqs[i][0][0]])[:,stepSeqs[i][0][1]:stepSeqs[i][0][2]][:,res.get_warping_path(target="query")]
+    temp = Helpers.smoothSeq(temp, res.get_warping_path(target="query"))
+    # ani = Plotting.animate(temp)
     # ani._start
     # plt.show()
+    alignedSteps.append(temp)
+
+print("Stepseqs shape: ", len(stepSeqs))
+print("alignedSteps shape: ", len(alignedSteps))
 
 fig, (ax1, ax2) = plt.subplots(1,2,figsize=(20,5))
 for i, x in enumerate(stepSeqs):
     from scipy.signal import savgol_filter
-    yhat = savgol_filter(x[1][id,:], 51, 3) # window size 51, polynomial order 3
-    ax1.plot(yhat)    
+    yhat = savgol_filter(x[1][id,:], 11, 3) # window size 51, polynomial order 3
+    ax1.plot(alignedSteps[i][id,:])    
     ax2.plot(originalSteps[i][1][id,:])    
 plt.show()
 

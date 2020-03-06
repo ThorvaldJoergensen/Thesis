@@ -325,6 +325,51 @@ def multiDTW_old(seqs, id):
                             JPos = j
     return AlignedSeqs
 
+def smoothSeq(seq, path):
+    counter = 1
+    for i in range(0, len(path), counter):
+        counter = 0
+        for j in range(i+1, len(path)):
+            if path[i] == path[j]:
+                counter += 1
+            else:
+                break
+        
+        combinationValue = 1.0
+        for k in range(1, counter+1):
+            combinationValue -= 1/(counter+1)
+            if i+counter+1 < len(path) - 1:
+                try:
+                    seq[:, i+k] = combinationValue*seq[:, i]+(1-combinationValue)*seq[:, i+counter]
+                except:
+                    print(i)
+                    print(k)
+                    print(counter)
+                    print(len(path))
+                    raise ValueError("THIS FUCKED UP")
+            else: 
+                if i == len(path) - 1:
+                    break
+                distanceToPrev = seq[:, i] - seq[:, i-1]
+                seq[:, i+k] = combinationValue*seq[:, i]+(1-combinationValue)*(distanceToPrev+seq[:, i])
+            # if k < seq.shape[0]-4:
+            #     seq[i] = combinationValue*seq[i]+(1-combinationValue)*seq[i+counter]
+            # else:
+            #     distanceToPrevX = seq[j] - seq[j-3]
+            #     distanceToPrevY = seq[j+1] - seq[j-2]
+            #     distanceToPrevZ = seq[j+2] - seq[j-1]
+            #     tempList.append(combinationValue*seq[j]+(1-combinationValue)*(distanceToPrevX+seq[j]))
+            #     tempList.append(combinationValue*seq[j+1]+(1-combinationValue)*(distanceToPrevY+seq[j+1]))
+            #     tempList.append(combinationValue*seq[j+2]+(1-combinationValue)*(distanceToPrevZ+seq[j+2]))
+            # if counter-k >= 1:
+            #     combinationValue -= 1/(counter+1)
+            # else:
+            #     combinationValue -= 1/counter
+        if counter == 0:
+            counter = 1
+    return seq
+
+
 # From https://stackoverflow.com/questions/18925181/procrustes-analysis-with-numpy
 def procrustes(X, Y, scaling=True, reflection='best'):
     """
