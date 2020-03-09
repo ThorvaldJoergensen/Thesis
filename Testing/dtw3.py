@@ -174,7 +174,7 @@ def findSteps(seq):
             if secondApproach and len(chuncklist) == 0:
                 raise RuntimeError("No steps found")
             secondApproach = True
-            window_size = int(seq.shape[0]/5)
+            window_size = int(seq.shape[0]/10)
         window_size = window_size+shift
 
     FirstofChunk = []

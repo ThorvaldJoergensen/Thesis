@@ -12,9 +12,9 @@ def spatial(data):
         index_inner = [0,9,12]
         for frame in range(0,seq.shape[0], 3):
             frameShape = np.zeros([3,15])
-            frameShape[0,:] = seq[frame,:]
-            frameShape[1,:] = seq[frame+1,:]
-            frameShape[2,:] = seq[frame+2,:]
+            frameShape[0,:] = seq[frame][:]
+            frameShape[1,:] = seq[frame+1][:]
+            frameShape[2,:] = seq[frame+2][:]
             if (seq0 is None):
                 seq0 = frameShape
             else:
@@ -26,9 +26,9 @@ def spatial(data):
                 _,_, transform2 = Helpers.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
                 frameShape_transformed = np.matmul(transform2['scale']*np.transpose(frameShape),transform2['rotation'])
                 frameShape = np.transpose(frameShape_transformed)
-                seq[frame,:] = frameShape[0,:]
-                seq[frame+1,:] = frameShape[1,:]
-                seq[frame+2,:] = frameShape[2,:]
+                seq[frame][:] = frameShape[0,:]
+                seq[frame+1][:] = frameShape[1,:]
+                seq[frame+2][:]= frameShape[2,:]
     print('Finished spatial alignment')
     return data
 

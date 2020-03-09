@@ -3,11 +3,104 @@ from sktensor import dtensor
 from sktensor.tucker import hosvd
 import glob, os, math
 from scipy.io.matlab import loadmat
+import matplotlib.pyplot as plt
 
 from dtaidistance import dtw as dtw2
 from dtwalign import dtw as dtwalign
 
+#Create Synthethic graphs for DTW Alignement
+def getSyntheticGraph(id):
+    if id == 5:
+        start = -33.0
+        top = -20.0
+        bottom = -36.0
+        end = -34.0
 
+        fullLength = 95
+
+        baseLength = 78.0
+        onePercent = baseLength/100
+        startToTop = 28.0
+        topToBottom = 34.0
+        bottomToEnd = 16.0
+
+        percent1 = startToTop/onePercent
+        percent2 = topToBottom/onePercent
+        percent3 = bottomToEnd/onePercent
+
+        onePercentOfFull = fullLength/100
+        fullStartToTop = int(onePercentOfFull * percent1)
+        fullTopToBottom = int(onePercentOfFull * percent2)
+        fullBottomToEnd = int(onePercentOfFull * percent3)
+
+        startSeq = np.linspace(start,top,fullStartToTop)
+        topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
+        bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
+        fullSeq = []
+        fullSeq.extend(startSeq)
+        fullSeq.extend(topToBottomSeq)
+        fullSeq.extend(bottomToEndSeq)
+        
+        # fig = plt.figure()
+        # ax = plt.axes()
+        from scipy.signal import savgol_filter
+        yhat = savgol_filter(fullSeq, 51, 3)
+        # ax.plot(yhat)
+        # plt.show()
+    elif id == 9:
+        start = -34.0
+        top = -26.0
+        bottom = -34.0
+        end = -33.0
+
+        fullLength = 95
+
+        baseLength = 95.0
+        onePercent = baseLength/100
+        startToTop = 49.0
+        topToBottom = 30.0
+        bottomToEnd = 16.0
+
+        percent1 = startToTop/onePercent
+        percent2 = topToBottom/onePercent
+        percent3 = bottomToEnd/onePercent
+
+        onePercentOfFull = fullLength/100
+        fullStartToTop = int(onePercentOfFull * percent1)
+        fullTopToBottom = int(onePercentOfFull * percent2)
+        fullBottomToEnd = int(onePercentOfFull * percent3)
+
+        startSeq = np.linspace(start,top,fullStartToTop)
+        topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
+        bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
+        fullSeq = []
+        fullSeq.extend(startSeq)
+        fullSeq.extend(topToBottomSeq)
+        fullSeq.extend(bottomToEndSeq)
+        # fig = plt.figure()
+        # ax = plt.axes()
+        from scipy.signal import savgol_filter
+        yhat = savgol_filter(fullSeq, 51, 3)
+        # ax.plot(yhat)
+        # plt.show()
+    return yhat
+
+#Reshape given Sequence list from number of frames * 3, 15 to 45, number of frames
+def reshapeTo45(Aligned):
+    RightFormFull = []
+    for i, x in enumerate(Aligned):
+        W1copy = np.zeros([45, int(x.shape[0]/3)])
+        for j in range(0,int(x.shape[0]/3)):
+            k = 3*j
+            shape = x[k:k+3,:]
+            points = np.zeros([45])
+            for l in range(0,15):
+                points[l*3] = shape[0][l]
+                points[(l*3)+2] = shape[1][l]
+                points[(l*3)+1] = shape[2][l]
+            W1copy[:,j] = points
+        RightFormFull.append(W1copy)
+    return RightFormFull
 # Perform HOSVD and return core tensor and U matrices
 def svd(tensor):
     print('Starting HOSVD')
@@ -44,27 +137,27 @@ def createMean(tensor):
 
 # Selects a given predefined subset of sequences
 def getSequence(tensor, labels, name = 'all'):
-    allJump = tensor[:,18:35,:]
-    allRun = tensor[:,36:72,:]
-    allWalk = tensor[:,85:169,:]
-    fiveRun = tensor[:,36:41,:]
-    fiveWalk = tensor[:,85:90,:]
-    allWalkbalancing = tensor[:,170:181,:]
-    allWalkuneven = tensor[:,182:218,:]
-    boxing = tensor[:,0,:].reshape(45,1,tensor.shape[2])
-    golfing = tensor[:,9,:].reshape(45,1,tensor.shape[2])
-    idle = tensor[:,15,:].reshape(45,1,tensor.shape[2])
-    jump = tensor[:,18,:].reshape(45,1,tensor.shape[2])
-    run = tensor[:,36,:].reshape(45,1,tensor.shape[2])
-    shoot = tensor[:,72,:].reshape(45,1,tensor.shape[2])
-    sit = tensor[:,78,:].reshape(45,1,tensor.shape[2])
-    sweepfloor = tensor[:,79,:].reshape(45,1,tensor.shape[2])
-    walk = tensor[:,85,:].reshape(45,1,tensor.shape[2])
-    walkbalancing = tensor[:,170,:].reshape(45,1,tensor.shape[2])
-    walkuneven = tensor[:,182,:].reshape(45,1,tensor.shape[2])
-    washwindow = tensor[:,219,:].reshape(45,1,tensor.shape[2])
-    fiveBalancing = tensor[:,170:175,:]
-    fiveUneven = tensor[:,182:187,:]
+    allJump = tensor[18:35]
+    allRun = tensor[36:72]
+    allWalk = tensor[85:169]
+    fiveRun = tensor[36:41]
+    fiveWalk = tensor[85:90]
+    allWalkbalancing = tensor[170:181]
+    allWalkuneven = tensor[182:218]
+    boxing = tensor[0]
+    golfing = tensor[9]
+    idle = tensor[15]
+    jump = tensor[18]
+    run = tensor[36]
+    shoot = tensor[72]
+    sit = tensor[78]
+    sweepfloor = tensor[79]
+    walk = tensor[85]
+    walkbalancing = tensor[170]
+    walkuneven = tensor[182]
+    washwindow = tensor[219]
+    fiveBalancing = tensor[170:175]
+    fiveUneven = tensor[182:187]
 
     sequence = []
     labelsStacked = []
@@ -72,13 +165,14 @@ def getSequence(tensor, labels, name = 'all'):
         sequence = tensor
         labelsStacked = labels
     if name == 'oneEach':
-        sequence = np.hstack((boxing, golfing, idle, jump, run, shoot, sit, sweepfloor, walk, walkbalancing, walkuneven, washwindow))
+        sequence = [boxing, golfing, idle, jump, run, shoot, sit, sweepfloor, walk, walkbalancing, walkuneven, washwindow]
+        print(len(sequence))
         labelsStacked = np.vstack((labels[0], labels[9], labels[15], labels[18], labels[36], labels[72], labels[78], labels[79], labels[85], labels[170], labels[182], labels[219]))
     if name == 'allRunWalk':
-        sequence = np.hstack((allRun, allWalk))
+        sequence = np.concatenate((allRun,allWalk))
         labelsStacked = np.vstack((labels[36:72], labels[85:169]))
     if name == 'fiveRunWalk':
-        sequence = np.hstack((fiveRun, fiveWalk))
+        sequence = np.concatenate((fiveRun, fiveWalk))
         labelsStacked = np.vstack((labels[36:41], labels[85:90]))
     if name == 'allRun':
         sequence = allRun
@@ -87,10 +181,10 @@ def getSequence(tensor, labels, name = 'all'):
         sequence = allWalk
         labelsStacked = labels[85:169]
     if name == 'allMoving':
-        sequence = np.hstack((allJump, allRun, allWalk, allWalkbalancing, allWalkuneven))
+        sequence = np.concatenate((allJump, allRun, allWalk, allWalkbalancing, allWalkuneven))
         labelsStacked = np.vstack((labels[18:35], labels[36:72], labels[85:169], labels[170:181], labels[182:218]))  
     if name == 'fiveBalancedUneven':
-        sequence = np.hstack((fiveBalancing, fiveUneven))
+        sequence = np.concatenate((fiveBalancing, fiveUneven))
         labelsStacked = np.vstack((labels[170:175], labels[182:187]))
 
     return sequence, labelsStacked
@@ -122,7 +216,7 @@ def loadData():
 def findSteps(seq):
     secondApproach = False
     shift = int(seq.shape[0]/20)
-    window_size = int(seq.shape[0]/5)
+    window_size = int(seq.shape[0]/10)
     threshold = np.var(seq)
     chuncklist = []
     avg_seq = np.average(seq)
@@ -130,20 +224,22 @@ def findSteps(seq):
         for i in range(0,seq.shape[0],shift):
             seq_window = seq[i:(i+window_size)]
             variance = np.var(seq_window)
-            if variance >= threshold/2:
+            if variance >= threshold*0.9:
                 pass_counter = 0
                 for x in seq_window:
-                    if ((not secondApproach and x > avg_seq) or (secondApproach and x < avg_seq)) and (pass_counter == 0 or pass_counter == 2):
-                        pass_counter = pass_counter +1
-                    elif ((not secondApproach and x < avg_seq) or (secondApproach and x > avg_seq)) and (pass_counter == 1 or pass_counter == 3):
-                        pass_counter = pass_counter +1
-                if pass_counter >= 4:
+                    if (not secondApproach and ((x < avg_seq and pass_counter == 0) or (x < avg_seq and pass_counter == 2))) or (secondApproach and ((x > avg_seq and pass_counter == 0) or (x > avg_seq and pass_counter == 2))):
+                        pass_counter += 1
+                    if (not secondApproach and (x > avg_seq and pass_counter == 1)) or (secondApproach and (x < avg_seq and pass_counter == 1)):
+                        pass_counter += 1
+                if pass_counter >= 3:
                     chuncklist.append((i,seq_window))
         if len(chuncklist) >= 2:
             break
         if window_size >= seq.shape[0]:
+            if secondApproach and len(chuncklist) == 0:
+                raise RuntimeError("No steps found")
             secondApproach = True
-            window_size = int(seq.shape[0]/5)
+            window_size = int(seq.shape[0]/10)
         window_size = window_size+shift
 
     FirstofChunk = []
@@ -172,41 +268,43 @@ def findSteps(seq):
         for j in range(0,i):
             if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
                 FinalFirst[i] = FinalLast[j]
-            elif val < FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+            elif val < FinalFirst[i-1]+((FinalLast[i-1] - FinalFirst[i-1])/2):
                 FinalFirst.pop(i)
                 FinalLast.pop(i)
     return FinalFirst, FinalLast
 
-def multiDTW(seqs, id):
+def multiDTW(seqs, id, refSeq):
     aligned = []
-    for i in range(0, seqs.shape[1]):
-        aligned.append(seqs[id, i, :])
+    for i in range(0, len(seqs)):
+        aligned.append(seqs[i][id][:])
     
-    
+    stepSeqs = []
     for i, x in enumerate(aligned):
-        stepSeqs = []
         finalFirst, finalLast = findSteps(np.array(aligned[i]))
         for j, x in enumerate(finalFirst):
             temp = np.array(seqs[i][:])
             stepSeqs.append([i, temp[:,x:finalLast[j]]])
-
+            # fig = plt.figure()
+            # ax = plt.axes()
+            # ax.plot(temp[11,:],c="b", label="1")
+            # ax.scatter(finalFirst,np.full([len(finalFirst)],-33), c="g")
+            # ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
+            # plt.show()
+    
     longestId = -1
     maxLength = -1
+    lengthList = []
     for i, x in enumerate(stepSeqs):
+        lengthList.append(len(x[1][0]))
         if len(x[1][0]) > maxLength:
             maxLength = len(x[1][0])
             longestId = i
-
+    print("LongestId: ", longestId)
+    print("MaxLength: ", maxLength)
     for i, x in enumerate(stepSeqs):
-        res = dtwalign(x[1][id,:], stepSeqs[longestId][1][id,:],step_pattern="typeIcs")
-        # res.plot_path()
-
-        y22path = res.get_warping_path(target="query")
-        y12path = res.path[:,1]
-        # y12path = res.get_warping_path(target="reference")
+        res = dtwalign(x[1][id,:], refSeq,step_pattern="typeIVc")
         stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
-    
-    return stepSeqs[:,1]
+    return np.array(stepSeqs)[:,1], lengthList
 
 def multiDTW_new_old(seqs, id):
     aligned = []
