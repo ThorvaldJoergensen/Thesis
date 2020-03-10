@@ -1,0 +1,14 @@
+Clean-up and comment
+* Make the code and results look pretty
+    Martin
+        Main
+        DTWHelpers
+
+    Thorvald
+        Plotting
+        AlignData
+        TensorHelpers
+
+Read-up
+    Find relevant classification techniques
+    How do they split and evaluate

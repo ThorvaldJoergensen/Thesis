@@ -4,17 +4,13 @@ import sys
 from scipy.io.matlab import loadmat
 from sktensor import dtensor
 import matplotlib.pyplot as plt
-# insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, '../Testing')
-sys.path.insert(1, '../')
 
-import Helpers
+import TensorHelpers
+import DTWHelpers
 import AlignData
 import Plotting
 
 import pandas as pd
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
 
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -25,14 +21,14 @@ import matplotlib.patches as mpatches
 import matplotlib
 
 
-seqList, labelList, minNrFrames, medianNrFrames = Helpers.loadData()
+seqList, labelList, minNrFrames, medianNrFrames = TensorHelpers.loadData()
 
 
 if True:
     # seqList = AlignData.spatial(seqList)
 
     # Load data from .mat file
-    mat = loadmat('../data_tensor.mat')
+    mat = loadmat('body/data_tensor.mat')
 
     # Extract previously saved data
     labels = np.array(mat.get('labels')) # 225 entries
@@ -45,37 +41,33 @@ if True:
 
     # Select a given subset of sequences
     if len(sys.argv) > 1:
-        subSeqList, labelsStacked = Helpers.getSequence(seqList, labels, sys.argv[1])
+        subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels, sys.argv[1])
     else:
-        subSeqList, labelsStacked = Helpers.getSequence(seqList, labels)
+        subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels)
     print("Result of get Sequence shape: ", len(subSeqList), len(subSeqList[1]))
 
     if len(subSeqList) == 0:
         print('Error in sequence result, please choose a valid sequence. [All, oneEach, allRunWalk, fiveRunWalk, allRun, allWalk, allMoving, fiveBalancedUneven]')
         exit()
     subSeqList = AlignData.spatial(subSeqList)
-    subSeqList = Helpers.reshapeTo45(subSeqList)
-    print("Result of reshape Sequence shape: ", len(subSeqList), len(subSeqList[1]))
+    subSeqList = DTWHelpers.reshapeTo45(subSeqList)
     action_steps = []
     Lengths = []
     nrPerAction = []
     for i, action in enumerate(action_names):
-        print("Ids to align: ",np.where(labelsStacked[:,0]==i+1)[0].tolist())
 
         if (len(np.where(labelsStacked[:,0]==i+1)[0]) > 0):
-            print('Now aligning: ',action_names[i][0][0], i+1)
+            print('Now aligning: ',action_names[i][0][0])
             steps = []
-            refSeq = Helpers.getSyntheticGraph(i+1)
+            refSeq = DTWHelpers.getSyntheticGraph(i+1)
             for x in np.where(labelsStacked[:,0]==i+1)[0].tolist():
                 steps.append(subSeqList[x])
-            print(len(steps), len(steps[1][0]))
-            steps, lengthList = Helpers.multiDTW(steps,11, refSeq)
+            steps, lengthList = DTWHelpers.multiDTW(steps,11, refSeq)
             Lengths.extend(lengthList)
             nrPerAction.append([i+1,len(lengthList)])
             action_steps.append(steps)
     Lengths = np.array(Lengths)
     medianLength = np.median(Lengths)-1
-    print("Median Length: ",np.median(Lengths))
     fig = plt.figure()
     ax = plt.axes()
     for i in range(0, len(action_steps)):
@@ -91,16 +83,15 @@ if True:
             else:
                 tensorList = np.hstack((tensorList,temp))
     tensor = dtensor(tensorList)
-    print(tensor.shape)
 
     # Compute mean body shape from given sequences
-    mean_tensor = Helpers.createMean(tensor)
+    mean_tensor = TensorHelpers.createMean(tensor)
 
     # Compute new tensor from sequences and mean shape
     Tdiff = dtensor(tensor - mean_tensor)
 
     # Perform HOSVD on tensor to get subspaces
-    U1,U2,U3,core_S = Helpers.svd(Tdiff)
+    U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
 
     labelsStacked = []
     for i in range(0,len(nrPerAction)):
@@ -125,7 +116,7 @@ else:
     plt.show()
 
     # Load data from .mat file
-    mat = loadmat('../data_tensor.mat')
+    mat = loadmat('body/data_tensor.mat')
 
     # Extract previously saved data
     labels = np.array(mat.get('labels')) # 225 entries
@@ -136,9 +127,9 @@ else:
 
     # Select a given subset of sequences
     if len(sys.argv) > 1:
-        tensor0, labelsStacked = Helpers.getSequence(tensor0, labels, sys.argv[1])
+        tensor0, labelsStacked = TensorHelpers.getSequence(tensor0, labels, sys.argv[1])
     else:
-        tensor0, labelsStacked = Helpers.getSequence(tensor0, labels)
+        tensor0, labelsStacked = TensorHelpers.getSequence(tensor0, labels)
     print(tensor0.shape)
 
     if len(tensor0) == 0:
@@ -149,7 +140,7 @@ else:
     for i, action in enumerate(action_names):
         if (tensor0[:,labelsStacked[:,0]==i+1,:].shape[1] > 0):
             print('Now aligning: ',action_names[i][0][0])
-            tensor0[:,labelsStacked[:,0]==i+1,:] = Helpers.multiDTW(tensor0[:,labelsStacked[:,0]==i+1,:],8)
+            tensor0[:,labelsStacked[:,0]==i+1,:] = DTWHelpers.multiDTW(tensor0[:,labelsStacked[:,0]==i+1,:],8)
 
     ani2 = Plotting.animate(tensor[:,4,:])
     plt.show()
@@ -174,13 +165,13 @@ else:
 
 
     # Compute mean body shape from given sequences
-    mean_tensor = Helpers.createMean(tensor0)
+    mean_tensor = TensorHelpers.createMean(tensor0)
 
     # Compute new tensor from sequences and mean shape
     Tdiff = dtensor(tensor0 - mean_tensor)
 
     # Perform HOSVD on tensor to get subspaces
-    U1,U2,U3,core_S = Helpers.svd(Tdiff)
+    U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
 
     # Plot the new U matrices
     Plotting.plotU1(U1)
