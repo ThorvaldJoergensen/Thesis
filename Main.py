@@ -49,32 +49,43 @@ if True:
     if len(subSeqList) == 0:
         print('Error in sequence result, please choose a valid sequence. [All, oneEach, allRunWalk, fiveRunWalk, allRun, allWalk, allMoving, fiveBalancedUneven]')
         exit()
+    # Align the given subset spatially
     subSeqList = AlignData.spatial(subSeqList)
+    # Reshape the data to 45, number of frames
     subSeqList = DTWHelpers.reshapeTo45(subSeqList)
     action_steps = []
     Lengths = []
     nrPerAction = []
     for i, action in enumerate(action_names):
-
+        # Select all sequences belonging to the current action.
         if (len(np.where(labelsStacked[:,0]==i+1)[0]) > 0):
             print('Now aligning: ',action_names[i][0][0])
             steps = []
+            # Get the synthetic graph for the current action (Only run and walk)
             refSeq = DTWHelpers.getSyntheticGraph(i+1)
+            # Create a new list of each sequence used to find the steps and align them
             for x in np.where(labelsStacked[:,0]==i+1)[0].tolist():
                 steps.append(subSeqList[x])
+            # Find the steps in each sequence and align them to the reference graph
             steps, lengthList = DTWHelpers.multiDTW(steps,11, refSeq)
+            # Put the lengths of all steps into a list
             Lengths.extend(lengthList)
+            # Create a list containing the id of each action and how many steps belong to that action ([5,41],[9,156] with running and walking for example)
             nrPerAction.append([i+1,len(lengthList)])
+            # Put the found steps for the current action into a combined list
             action_steps.append(steps)
     Lengths = np.array(Lengths)
+    # Find the median length of the steps
     medianLength = np.median(Lengths)-1
     fig = plt.figure()
     ax = plt.axes()
+    # Plot the movement of the z coordinate of the right foot
     for i in range(0, len(action_steps)):
         for x in range(0,len(action_steps[i])):
             ax.plot(action_steps[i][x][11][:])
     plt.show()
     tensorList = []
+    # Get each sequence and reshape them into 45,1,median length in order to horisontally stack them into a tensor of size 45, number of steps, median length
     for i in range(0,len(action_steps)):
         for x in range(0,len(action_steps[i])):
             temp = np.array(action_steps[i][x]).reshape([45,1,int(medianLength)])
@@ -93,6 +104,7 @@ if True:
     # Perform HOSVD on tensor to get subspaces
     U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
 
+    # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
     labelsStacked = []
     for i in range(0,len(nrPerAction)):
         for x in range(0,nrPerAction[i][1]):

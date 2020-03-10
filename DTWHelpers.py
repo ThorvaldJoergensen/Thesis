@@ -6,7 +6,9 @@ from dtwalign import dtw as dtwalign
 
 #Create Synthethic graphs for DTW Alignement
 def getSyntheticGraph(id):
+    # If the id is running sequence
     if id == 5:
+        # Setup parameters for where the graph changes direction and for how long it should be
         start = -33.0
         top = -20.0
         bottom = -36.0
@@ -14,21 +16,25 @@ def getSyntheticGraph(id):
 
         fullLength = 95
 
+        # Observed lengths between the setup points
         baseLength = 78.0
         onePercent = baseLength/100
         startToTop = 28.0
         topToBottom = 34.0
         bottomToEnd = 16.0
 
+        # How much of a percentage of the graph is between each point
         percent1 = startToTop/onePercent
         percent2 = topToBottom/onePercent
         percent3 = bottomToEnd/onePercent
 
+        # Calculate how many points need to be between the setup points, based on the observed percentages
         onePercentOfFull = fullLength/100
         fullStartToTop = int(onePercentOfFull * percent1)
         fullTopToBottom = int(onePercentOfFull * percent2)
         fullBottomToEnd = int(onePercentOfFull * percent3)
 
+        # Create the points to insert between the setup points
         startSeq = np.linspace(start,top,fullStartToTop)
         topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
         bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
@@ -39,10 +45,12 @@ def getSyntheticGraph(id):
         
         # fig = plt.figure()
         # ax = plt.axes()
+        # # Smooth the calculated graph to remove the completely straight lines
         from scipy.signal import savgol_filter
         yhat = savgol_filter(fullSeq, 51, 3)
         # ax.plot(yhat)
         # plt.show()
+    #If the id is walking sequence
     elif id == 9:
         start = -34.0
         top = -26.0
@@ -81,57 +89,72 @@ def getSyntheticGraph(id):
         # plt.show()
     return yhat
 
+# Method to find the steps in a given sequence
 def findSteps(seq):
     secondApproach = False
+    # Setup how much we shift the window, how large the window is and what the threshold of the steps should be
     shift = int(seq.shape[0]/20)
     window_size = int(seq.shape[0]/10)
     threshold = np.var(seq)
     chuncklist = []
     avg_seq = np.average(seq)
     while True:
+        # Look through the sequence, moving the window shift spaces each iteration
         for i in range(0,seq.shape[0],shift):
             seq_window = seq[i:(i+window_size)]
             variance = np.var(seq_window)
             if variance >= threshold*0.9:
                 pass_counter = 0
+                # If the window contains something we think might be interesting to check, we then check if it passes the average of the sequence twice (starting below, going above, then below)
+                # If secondApproach is true then we check if the window passes the average twice in the opposite order (starting above average, going below and then above)
+                # This is to catch steps in sequences that start or end differently from the majority
                 for x in seq_window:
                     if (not secondApproach and ((x < avg_seq and pass_counter == 0) or (x < avg_seq and pass_counter == 2))) or (secondApproach and ((x > avg_seq and pass_counter == 0) or (x > avg_seq and pass_counter == 2))):
                         pass_counter += 1
                     if (not secondApproach and (x > avg_seq and pass_counter == 1)) or (secondApproach and (x < avg_seq and pass_counter == 1)):
                         pass_counter += 1
+                # If we pas the average twice, append the window to the chuncklist
                 if pass_counter >= 3:
                     chuncklist.append((i,seq_window))
+        # If we have found 2 or more steps (or the same step twice) we continue
         if len(chuncklist) >= 2:
             break
+        # If the window i larger than the sequence, we try the secondapproach. If we already tried the second approach then we have not found any steps, and something is wrong so we raise an exception
         if window_size >= seq.shape[0]:
             if secondApproach and len(chuncklist) == 0:
                 raise RuntimeError("No steps found")
             secondApproach = True
             window_size = int(seq.shape[0]/10)
+        # Increase window size
         window_size = window_size+shift
 
     FirstofChunk = []
     LastofChunk = []
+    # Add all windows begin and end values to new lists
     for x in chuncklist:
         FirstofChunk.append(x[0])
         LastofChunk.append(x[0]+window_size)
+    # These lists may be out of order, so we sort them
     FirstofChunk.sort()
     LastofChunk.sort()
     FinalFirst = []
     FinalLast = []
 
+    # Check if the previous saved window starts within the shift value of this windows start, if so skip the current point
     for i, val in enumerate(FirstofChunk):
         if i != 0 and FirstofChunk[i-1] >= val-shift:
             continue
         else:
             FinalFirst.append(val)
 
+    # Check if the next saved window ends within the shift value of this windows end, if so skip the current point
     for i, val in enumerate(LastofChunk):
         if i < len(LastofChunk)-1 and LastofChunk[i+1] <= val+shift:
             continue
         else:
             FinalLast.append(val)
-
+    # If the beginning of a window (x) lies inside of another window (y), first check if x lies closer to the end of y than the beginning, if it does move x to the end of y.
+    # If not, then remove x and the end of y, but keep the beginning of y and x's end point
     for i, val in enumerate(FinalFirst):
         for j in range(0,i):
             if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
@@ -141,13 +164,16 @@ def findSteps(seq):
                 FinalLast.pop(i)
     return FinalFirst, FinalLast
 
+# Align the given sequence list to the reference sequence using the values in the place given from id
 def multiDTW(seqs, id, refSeq):
     aligned = []
+    # Append the single coordinate values of each sequence
     for i in range(0, len(seqs)):
         aligned.append(seqs[i][id][:])
     
     stepSeqs = []
     for i, x in enumerate(aligned):
+        # Find all steps in each sequence and put them in a new list
         finalFirst, finalLast = findSteps(np.array(aligned[i]))
         for j, x in enumerate(finalFirst):
             temp = np.array(seqs[i][:])
@@ -162,13 +188,15 @@ def multiDTW(seqs, id, refSeq):
     longestId = -1
     maxLength = -1
     lengthList = []
+    # Find the lengths of all steps and the longest length
     for i, x in enumerate(stepSeqs):
         lengthList.append(len(x[1][0]))
         if len(x[1][0]) > maxLength:
             maxLength = len(x[1][0])
             longestId = i
-    print("LongestId: ", longestId)
-    print("MaxLength: ", maxLength)
+    # print("LongestId: ", longestId)
+    # print("MaxLength: ", maxLength)
+    # # Align each step to the refernce sequence given and save the new sequence
     for i, x in enumerate(stepSeqs):
         res = dtwalign(x[1][id,:], refSeq,step_pattern="typeIVc")
         stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
@@ -308,16 +336,20 @@ def reshapeTo45(Aligned):
         RightFormFull.append(W1copy)
     return RightFormFull
 
+# Smoothes a given sequence using the path provided
 def smoothSeq(seq, path):
+    # Setup the counter to use while looking through the path
     counter = 1
     for i in range(0, len(path), counter):
         counter = 0
+        # Check the next spots if they are set to the same value as the current one, if they are add 1 to the counter.
         for j in range(i+1, len(path)):
+            # Maybe check the if statement if it is correct (print path[i] and path[j], see whats up and see if counter is counted up)
             if path[i] == path[j]:
                 counter += 1
             else:
                 break
-        
+        # Setup the value that is used to determine how large each part of the linear combination should be
         combinationValue = 1.0
         for k in range(1, counter+1):
             combinationValue -= 1/(counter+1)
