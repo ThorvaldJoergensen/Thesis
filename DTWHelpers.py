@@ -199,7 +199,9 @@ def multiDTW(seqs, id, refSeq):
     # # Align each step to the refernce sequence given and save the new sequence
     for i, x in enumerate(stepSeqs):
         res = dtwalign(x[1][id,:], refSeq,step_pattern="typeIVc")
-        stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
+        # if i == 4:
+        #     smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"), True)
+        stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
     return np.array(stepSeqs)[:,1], lengthList
 
 def multiDTW_new_old(seqs, id):
@@ -337,15 +339,25 @@ def reshapeTo45(Aligned):
     return RightFormFull
 
 # Smoothes a given sequence using the path provided
-def smoothSeq(seq, path):
+def smoothSeq(seq, path, debug = False):
     # Setup the counter to use while looking through the path
     counter = 1
+    if debug:
+        print("path", path)
+        fig = plt.figure()
+        ax = plt.axes()
+        ax.plot(seq[11,:])
     for i in range(0, len(path), counter):
         counter = 0
         # Check the next spots if they are set to the same value as the current one, if they are add 1 to the counter.
         for j in range(i+1, len(path)):
             # Maybe check the if statement if it is correct (print path[i] and path[j], see whats up and see if counter is counted up)
             if path[i] == path[j]:
+                counter += 1
+            # Check if there is a dip (backwards alignment) and repeat frames in this case before smoothing
+            elif path[i] > path[j]:
+                seq[:, j] = seq[:, i]
+                path[j] = path[i]
                 counter += 1
             else:
                 break
@@ -355,31 +367,14 @@ def smoothSeq(seq, path):
             combinationValue -= 1/(counter+1)
             if i+counter+1 < len(path) - 1:
                 try:
-                    seq[:, i+k] = combinationValue*seq[:, i]+(1-combinationValue)*seq[:, i+counter]
+                    seq[:, i+k] = combinationValue*seq[:, i]+(1-combinationValue)*seq[:, i+counter+1]
                 except:
-                    print(i)
-                    print(k)
-                    print(counter)
-                    print(len(path))
-                    raise ValueError("THIS FUCKED UP")
+                    raise ValueError("Something went wrong in smoothing, please try again")
             else: 
                 if i == len(path) - 1:
                     break
                 distanceToPrev = seq[:, i] - seq[:, i-1]
                 seq[:, i+k] = combinationValue*seq[:, i]+(1-combinationValue)*(distanceToPrev+seq[:, i])
-            # if k < seq.shape[0]-4:
-            #     seq[i] = combinationValue*seq[i]+(1-combinationValue)*seq[i+counter]
-            # else:
-            #     distanceToPrevX = seq[j] - seq[j-3]
-            #     distanceToPrevY = seq[j+1] - seq[j-2]
-            #     distanceToPrevZ = seq[j+2] - seq[j-1]
-            #     tempList.append(combinationValue*seq[j]+(1-combinationValue)*(distanceToPrevX+seq[j]))
-            #     tempList.append(combinationValue*seq[j+1]+(1-combinationValue)*(distanceToPrevY+seq[j+1]))
-            #     tempList.append(combinationValue*seq[j+2]+(1-combinationValue)*(distanceToPrevZ+seq[j+2]))
-            # if counter-k >= 1:
-            #     combinationValue -= 1/(counter+1)
-            # else:
-            #     combinationValue -= 1/counter
         if counter == 0:
             counter = 1
     return seq

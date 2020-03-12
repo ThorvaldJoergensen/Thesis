@@ -5,7 +5,7 @@ Clean-up and comment
         DTWHelpers
 
     Thorvald
-        Plotting
+        Plotting (v)
         AlignData
         TensorHelpers
 

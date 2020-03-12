@@ -4,11 +4,13 @@ import matplotlib.animation as animation
 import numpy as np
 from matplotlib import cm
 
+# Create animation plot of a sequence with shape (45, x) where x is the number of frames
 def animate(array, filepath=''):
     xs = []
     ys = []
     zs = []
 
+    # Keep count of number of frames in the sequence
     nfr = int(array.shape[1])
 
     # Split the data into x,y,z coordinates for each frame
@@ -28,8 +30,10 @@ def animate(array, filepath=''):
         # Clear all lines (except points)
         ax.lines = [ax.lines[0]]
 
+        # Set x, y & z values 
         sct.set_data(xa[ifrm*15:ifrm*15+14], ya[ifrm*15:ifrm*15+14])
         sct.set_3d_properties(za[ifrm*15:ifrm*15+14])
+
         # For drawing the lines between points
         # Right leg
         ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+1]], [ya[ifrm*15+0], ya[ifrm*15+1]], [za[ifrm*15+0], za[ifrm*15+1]], 'steelblue', markersize=2)
@@ -58,84 +62,123 @@ def animate(array, filepath=''):
     ax.set_zlim(-30,30)
 
     # Set labels
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
 
-    # Run animation with the update function and point lists
+    # Create animation with the update function and point lists
     ani = animation.FuncAnimation(fig, update, nfr, fargs=(xs,ys,zs), interval=1)
+
+    # If filepath is given save the animation as a gif (imagemagick installation is required)
     if filepath != '':
         ani.save(filepath, writer='imagemagick', fps=30)
+
+    # Start the animation
     ani._start
 
+    # Return animation object
     return ani
 
-    # Plot the U1 matrix
+# Plot the U1 matrix
 def plotU1(U1):
     # Create colormap from jet preset
     colormap = plt.get_cmap("jet")
 
-    #Figure 1
-    fig1 = plt.figure()
-    fig1.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
-    ax1 = fig1.add_subplot(111, projection='3d')
-    ax1.scatter(U1[:,0], U1[:,1], U1[:,2], s=15, c=np.arange(U1.shape[0]), cmap=colormap)
-    ax1.set_xlim(1,-1)
-    ax1.set_ylim(-1,1)
-    ax1.set_zlim(1,-1)
-    ax1.set_xlabel('X')
-    ax1.set_ylabel('Y')
-    ax1.set_zlabel('Z')
-    fig1.suptitle("U1 Matrix")
+    # Create figure
+    fig = plt.figure()
+    fig.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the points 
+    ax.scatter(U1[:,0], U1[:,1], U1[:,2], s=15, c=np.arange(U1.shape[0]), cmap=colormap)
+
+    # Limit x, y & z axis 
+    ax.set_xlim(1,-1)
+    ax.set_ylim(-1,1)
+    ax.set_zlim(1,-1)
+
+    # Set labels
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    # Set title on plot
+    fig.suptitle("U1 Matrix")
 
 # Plot the U2 matrix
 def plotU2(U2, labelsStacked, action_names):
-    #Figure 2
-    fig2 = plt.figure(figsize=(10,10))
-    fig2.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
-    ax2 = fig2.add_subplot(111, projection='3d')
-    jet = cm.get_cmap('jet',action_names.shape[0]) # Create colormap with action_names size
-    numberPlotted = 0
-    for i, action in enumerate(action_names): # Iterate over all actions
+    # Create figure
+    fig = plt.figure(figsize=(10,10))
+    fig.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Create colormap with the amount of actions from jet preset
+    jet = cm.get_cmap('jet',action_names.shape[0]) 
+
+    actionsPlotted = 0
+
+    # Iterate over all actions
+    for i, action in enumerate(action_names): 
         # Get all U2 values that have the given action as the label 
         if (U2[labelsStacked[:,0]==i+1,0].shape[0] != 0):
-            if  numberPlotted < len(set(labelsStacked[:,0])) / 2:
+            # Switch markertype when half of the actions have been plotted
+            if  actionsPlotted < len(set(labelsStacked[:,0])) / 2:
                 markertype = 'o'
             else:  
                 markertype = 'd'
-            ax2.scatter(U2[labelsStacked[:,0]==i+1,0], U2[labelsStacked[:,0]==i+1,1], U2[labelsStacked[:,0]==i+1,2], marker=markertype, s=10, color=jet(i), label=action[0][0])   
-            numberPlotted += 1
-    ax2.view_init(90, -90)
-    ax2.set_xlim(0.3,-0.25)
-    ax2.set_ylim(0.5,-0.2)
-    ax2.set_zlim(1,-1)
-    ax2.legend()
-    ax2.set_xlabel('X')
-    ax2.set_ylabel('Y')
-    ax2.set_zlabel('Z')
-    fig2.suptitle("U2 Matrix")
+            
+            # Plot the points with the color and label based on action
+            ax.scatter(U2[labelsStacked[:,0]==i+1,0], U2[labelsStacked[:,0]==i+1,1], U2[labelsStacked[:,0]==i+1,2], marker=markertype, s=10, color=jet(i), label=action[0][0])   
+            actionsPlotted += 1
+    # Set view angle
+    ax.view_init(90, -90)
+    
+    # Limit x, y & z axis 
+    ax.set_xlim(0.3,-0.25)
+    ax.set_ylim(0.5,-0.2)
+    ax.set_zlim(1,-1)
+
+    # Set labels
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    # Set title on plot
+    fig.suptitle("U2 Matrix")
+    
+    # Show labels
+    ax.legend()
 
 # Plot the U3 matrix
 def plotU3(U3):
     # Create colormap from jet preset
     colormap = plt.get_cmap("jet")
 
-    # Figure 3
-    fig3 = plt.figure(figsize=(10,10))
-    fig3.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
-    ax3 = fig3.add_subplot(111, projection='3d')
-    # Scatter all points
-    ax3.scatter(U3[:,0], U3[:,1], U3[:,2], s=15, c=np.arange(U3.shape[0]), cmap=colormap)    
-    # Draw black line between all points
-    ax3.plot(U3[:,0], U3[:,1], U3[:,2], c="black", markersize=1)
+    # Create figure
+    fig = plt.figure(figsize=(10,10))
+    fig.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the points 
+    ax.scatter(U3[:,0], U3[:,1], U3[:,2], s=15, c=np.arange(U3.shape[0]), cmap=colormap)    
+
+    # Draw black line between points
+    ax.plot(U3[:,0], U3[:,1], U3[:,2], c="black", markersize=1)
+
     # Label with incrementing counter
     # for i in range(U3.shape[0]):
     #     ax3.text(U3[i,0], U3[i,1], U3[i,2], i, size=6)
-    ax3.set_xlim(0.12,0.02)
-    ax3.set_ylim(-0.15,0.2)
-    ax3.set_zlim(0.2,-0.15)
-    ax3.set_xlabel('X')
-    ax3.set_ylabel('Y')
-    ax3.set_zlabel('Z')
-    fig3.suptitle("U3 Matrix")
+    
+    # Limit x, y & z axis 
+    ax.set_xlim(0.12,0.02)
+    ax.set_ylim(-0.15,0.2)
+    ax.set_zlim(0.2,-0.15)
+
+    # Set labels
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    
+    # Set title on plot
+    fig.suptitle("U3 Matrix")
     

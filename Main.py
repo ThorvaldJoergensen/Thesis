@@ -80,10 +80,9 @@ if True:
     fig = plt.figure()
     ax = plt.axes()
     # Plot the movement of the z coordinate of the right foot
-    for i in range(0, len(action_steps)):
-        for x in range(0,len(action_steps[i])):
+    for i in range(0, int(len(action_steps))):
+        for x in range(0,int(len(action_steps[i]))):
             ax.plot(action_steps[i][x][11][:])
-    plt.show()
     tensorList = []
     # Get each sequence and reshape them into 45,1,median length in order to horisontally stack them into a tensor of size 45, number of steps, median length
     for i in range(0,len(action_steps)):
@@ -191,107 +190,77 @@ else:
     Plotting.plotU3(U3)
     plt.show()
 
-    data = np.concatenate((U2[36:72],U2[85:169]))
-    # data = U2
-    labels1 = np.array(labelList)
-    labels = np.concatenate((labels1[36:72],labels1[85:169]))
-    # labels = labels1
-    classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
+# data = np.concatenate((U2[36:72],U2[85:169]))
+data = U2[:,0:3]
+labels1 = np.array(labelList)
+# labels = np.concatenate((labels1[36:72],labels1[85:169]))
+labels = labels1
+classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
 
-    labels2 = []
-    for i, value in enumerate(labels):
-        labels2.append(int(classes.index(value)))
-    labels2 = np.array(labels2)
-    X_train, X_test, Y_train, Y_test = train_test_split(data, labels2, test_size = 0.25)
+# labels2 = []
+# for i, value in enumerate(labels):
+#     labels2.append(int(classes.index(value)))
+labels2 = labelsStacked#np.array(labels2)
+X_train, X_test, Y_train, Y_test = train_test_split(data, labels2, test_size = 0.25)
 
-    # SVC Classifier
-    # svclassifier = SVC(kernel='rbf')
-    # svclassifier.fit(X_train, y_train)
+# SVC with GridSearchCV
+# Dimension of Train and Test set 
+print("Dimension of Train set",X_train.shape)
+print("Dimension of Test set",X_test.shape,"\n")
 
-    # y_pred = svclassifier.predict(X_test)
+# Transforming non numerical labels into numerical labels
+from sklearn import preprocessing
+encoder = preprocessing.LabelEncoder()
 
-    # from sklearn.metrics import classification_report, confusion_matrix
-    # print(classification_report(y_test,y_pred))
+# encoding train labels 
+encoder.fit(Y_train)
+Y_train = encoder.transform(Y_train)
 
-    # print(data.shape)
-    # print(labels2.shape)
-    # plt.scatter(data[:, 0], data[:, 1], c=labels2, s=50, cmap='autumn')
+# encoding test labels 
+encoder.fit(Y_test)
+Y_test = encoder.transform(Y_test)
 
-
-    # ax = plt.gca()
-    # xlim = ax.get_xlim()
-    # ylim = ax.get_ylim()# create grid to evaluate model
-    # xx = np.linspace(xlim[0], xlim[1], 30)
-    # yy = np.linspace(ylim[0], ylim[1], 30)
-    # YY, XX = np.meshgrid(yy, xx)
-    # xy = np.vstack([XX.ravel(), YY.ravel()]).T
-    # Z = svclassifier.decision_function(xy).reshape(XX.shape)# plot decision boundary and margins
-    # ax.contour(XX, YY, Z, colors='k', levels=[-1, 0, 1], alpha=0.5,
-    #            linestyles=['--', '-', '--'])
-    # # plot support vectors
-    # ax.scatter(svclassifier.support_vectors_[:, 0], svclassifier.support_vectors_[:, 1], s=100,
-    #            linewidth=1, facecolors='none', edgecolors='k')
-    # plt.show()
+#Total Number of Continous and Categorical features in the training set
+num_cols = pd.DataFrame(X_train)._get_numeric_data().columns
+print("Number of numeric features:",num_cols.size)
+#list(set(X_train.columns) - set(num_cols))
 
 
-    # SVC with GridSearchCV
-    # Dimension of Train and Test set 
-    print("Dimension of Train set",X_train.shape)
-    print("Dimension of Test set",X_test.shape,"\n")
+names_of_predictors = list(pd.DataFrame(X_train).columns.values)
 
-    # Transforming non numerical labels into numerical labels
-    from sklearn import preprocessing
-    encoder = preprocessing.LabelEncoder()
+# Scaling the Train and Test feature set 
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(pd.DataFrame(X_test))
 
-    # encoding train labels 
-    encoder.fit(Y_train)
-    Y_train = encoder.transform(Y_train)
+from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.metrics import classification_report, confusion_matrix
 
-    # encoding test labels 
-    encoder.fit(Y_test)
-    Y_test = encoder.transform(Y_test)
+params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
+                    'C': [1, 10, 100, 1000, 10000]},
+                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
+                    {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
+                    {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
 
-    #Total Number of Continous and Categorical features in the training set
-    num_cols = pd.DataFrame(X_train)._get_numeric_data().columns
-    print("Number of numeric features:",num_cols.size)
-    #list(set(X_train.columns) - set(num_cols))
+svm_model = GridSearchCV(SVC(), params_grid, cv=5)
+svm_model.fit(X_train_scaled, Y_train)
 
+print('Best score for training data:', svm_model.best_score_,"\n") 
 
-    names_of_predictors = list(pd.DataFrame(X_train).columns.values)
+# View the best parameters for the model found using grid search
+print('Best C:',svm_model.best_estimator_.C,"\n") 
+print('Best Kernel:',svm_model.best_estimator_.kernel,"\n")
+print('Best Gamma:',svm_model.best_estimator_.gamma,"\n")
 
-    # Scaling the Train and Test feature set 
-    from sklearn.preprocessing import StandardScaler
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(pd.DataFrame(X_test))
+final_model = svm_model.best_estimator_
+Y_pred = final_model.predict(X_test_scaled)
+Y_pred_label = list(encoder.inverse_transform(Y_pred))
 
-    from sklearn.model_selection import cross_val_score, GridSearchCV
-    from sklearn.metrics import classification_report, confusion_matrix
+print(confusion_matrix(Y_test,Y_pred_label))
+print("\n")
+print(classification_report(Y_test,Y_pred_label))
 
-    params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                        'C': [1, 10, 100, 1000, 10000]},
-                        {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
-                        {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
-                        {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
-
-    svm_model = GridSearchCV(SVC(), params_grid, cv=5)
-    svm_model.fit(X_train_scaled, Y_train)
-
-    print('Best score for training data:', svm_model.best_score_,"\n") 
-
-    # View the best parameters for the model found using grid search
-    print('Best C:',svm_model.best_estimator_.C,"\n") 
-    print('Best Kernel:',svm_model.best_estimator_.kernel,"\n")
-    print('Best Gamma:',svm_model.best_estimator_.gamma,"\n")
-
-    final_model = svm_model.best_estimator_
-    Y_pred = final_model.predict(X_test_scaled)
-    Y_pred_label = list(encoder.inverse_transform(Y_pred))
-
-    print(confusion_matrix(Y_test,Y_pred_label))
-    print("\n")
-    print(classification_report(Y_test,Y_pred_label))
-
-    print("Training set score for SVM: %f" % final_model.score(X_train_scaled , Y_train))
-    print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
+print("Training set score for SVM: %f" % final_model.score(X_train_scaled , Y_train))
+print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
 
