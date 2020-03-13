@@ -9,6 +9,7 @@ import TensorHelpers
 import DTWHelpers
 import AlignData
 import Plotting
+import Classifiers
 
 import pandas as pd
 
@@ -38,12 +39,26 @@ if True:
 
     # Load full tensor from matlab file
     tensor0 = []
+    alignment_classifier = False
+    angle_classifier = False
+    SVM_classifier = False
+    # Select which classifier to run
+    if len(sys.argv) > 1:
+        if "Alignment" in sys.argv[1]:
+            print("Alignement classification requested")
+            alignment_classifier = True
+        if "Angle" in sys.argv[1]:
+            print("Angle classification requested")
+            angle_classifier = True
+        if "SVM" in sys.argv[1]:
+            print("SVM classification requested")
+            SVM_classifier = True
 
     # Select a given subset of sequences
-    if len(sys.argv) > 1:
-        subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels, sys.argv[1])
-    else:
-        subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels)
+    # if len(sys.argv) > 1:
+    #     subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels, sys.argv[1])
+    # else:
+    subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels)
     print("Result of get Sequence shape: ", len(subSeqList), len(subSeqList[1]))
 
     if len(subSeqList) == 0:
@@ -56,6 +71,32 @@ if True:
     action_steps = []
     Lengths = []
     nrPerAction = []
+    if alignment_classifier or angle_classifier:
+        temp_classification_List = []
+        classification_list = []
+        classification_labels = []
+        for x in np.where(labelsStacked[:,0]==5)[0].tolist():
+            temp_classification_List.append((5,subSeqList[x]))
+
+        for x in np.where(labelsStacked[:,0]==9)[0].tolist():
+            temp_classification_List.append((9,subSeqList[x]))
+        # Top line allows multiple entries of same number (i.e. [3,3,5,...]) bottom does not
+        indexes = np.random.randint(len(temp_classification_List),size=int(len(temp_classification_List)))
+        indexes = np.random.choice(len(temp_classification_List),len(temp_classification_List),replace=False)
+        run_classify = []
+        walk_classify = []
+        for x in indexes:
+            classification_list.append(temp_classification_List[x][1])
+            if temp_classification_List[x][0] == 5:
+                run_classify.append(temp_classification_List[x][1])
+            else:
+                walk_classify.append(temp_classification_List[x][1])
+            classification_labels.append(temp_classification_List[x][0])
+        if alignment_classifier:
+            Classifiers.alignment_Classification(run_classify, walk_classify)
+        if angle_classifier:
+            Classifiers.angle_Classification(classification_list,classification_labels)
+
     for i, action in enumerate(action_names):
         # Select all sequences belonging to the current action.
         if (len(np.where(labelsStacked[:,0]==i+1)[0]) > 0):
@@ -189,78 +230,5 @@ else:
     Plotting.plotU2(U2, labelsStacked, action_names)
     Plotting.plotU3(U3)
     plt.show()
-
-# data = np.concatenate((U2[36:72],U2[85:169]))
-data = U2[:,0:3]
-labels1 = np.array(labelList)
-# labels = np.concatenate((labels1[36:72],labels1[85:169]))
-labels = labels1
-classes = ['run', 'walk', 'boxing', 'golfswing', 'idle', 'jump', 'shoot', 'sit', 'sweepfloor', 'walkbalancing', 'walkuneventerrain', 'washwindow']
-
-# labels2 = []
-# for i, value in enumerate(labels):
-#     labels2.append(int(classes.index(value)))
-labels2 = labelsStacked#np.array(labels2)
-X_train, X_test, Y_train, Y_test = train_test_split(data, labels2, test_size = 0.25)
-
-# SVC with GridSearchCV
-# Dimension of Train and Test set 
-print("Dimension of Train set",X_train.shape)
-print("Dimension of Test set",X_test.shape,"\n")
-
-# Transforming non numerical labels into numerical labels
-from sklearn import preprocessing
-encoder = preprocessing.LabelEncoder()
-
-# encoding train labels 
-encoder.fit(Y_train)
-Y_train = encoder.transform(Y_train)
-
-# encoding test labels 
-encoder.fit(Y_test)
-Y_test = encoder.transform(Y_test)
-
-#Total Number of Continous and Categorical features in the training set
-num_cols = pd.DataFrame(X_train)._get_numeric_data().columns
-print("Number of numeric features:",num_cols.size)
-#list(set(X_train.columns) - set(num_cols))
-
-
-names_of_predictors = list(pd.DataFrame(X_train).columns.values)
-
-# Scaling the Train and Test feature set 
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(pd.DataFrame(X_test))
-
-from sklearn.model_selection import cross_val_score, GridSearchCV
-from sklearn.metrics import classification_report, confusion_matrix
-
-params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                    'C': [1, 10, 100, 1000, 10000]},
-                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
-                    {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
-                    {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
-
-svm_model = GridSearchCV(SVC(), params_grid, cv=5)
-svm_model.fit(X_train_scaled, Y_train)
-
-print('Best score for training data:', svm_model.best_score_,"\n") 
-
-# View the best parameters for the model found using grid search
-print('Best C:',svm_model.best_estimator_.C,"\n") 
-print('Best Kernel:',svm_model.best_estimator_.kernel,"\n")
-print('Best Gamma:',svm_model.best_estimator_.gamma,"\n")
-
-final_model = svm_model.best_estimator_
-Y_pred = final_model.predict(X_test_scaled)
-Y_pred_label = list(encoder.inverse_transform(Y_pred))
-
-print(confusion_matrix(Y_test,Y_pred_label))
-print("\n")
-print(classification_report(Y_test,Y_pred_label))
-
-print("Training set score for SVM: %f" % final_model.score(X_train_scaled , Y_train))
-print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
-
+if SVM_classifier:
+    Classifiers.SVM_Classification(U2[:,0:3], labelsStacked)

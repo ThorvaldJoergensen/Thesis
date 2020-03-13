@@ -1,0 +1,6 @@
+Read for monday 16/03:
+    19.1, 19.2, 19.4, 19.5, 19.6, 19.7 (and maybe 19.11, 19.12, 19.14.2 if they are interesting)
+
+On monday:
+    implement cross validation
+    Formalise quality measures on classifier
