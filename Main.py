@@ -68,34 +68,16 @@ if True:
     subSeqList = AlignData.spatial(subSeqList)
     # Reshape the data to 45, number of frames
     subSeqList = DTWHelpers.reshapeTo45(subSeqList)
+
+    seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
+
     action_steps = []
     Lengths = []
     nrPerAction = []
-    if alignment_classifier or angle_classifier:
-        temp_classification_List = []
-        classification_list = []
-        classification_labels = []
-        for x in np.where(labelsStacked[:,0]==5)[0].tolist():
-            temp_classification_List.append((5,subSeqList[x]))
-
-        for x in np.where(labelsStacked[:,0]==9)[0].tolist():
-            temp_classification_List.append((9,subSeqList[x]))
-        # Top line allows multiple entries of same number (i.e. [3,3,5,...]) bottom does not
-        indexes = np.random.randint(len(temp_classification_List),size=int(len(temp_classification_List)))
-        indexes = np.random.choice(len(temp_classification_List),len(temp_classification_List),replace=False)
-        run_classify = []
-        walk_classify = []
-        for x in indexes:
-            classification_list.append(temp_classification_List[x][1])
-            if temp_classification_List[x][0] == 5:
-                run_classify.append(temp_classification_List[x][1])
-            else:
-                walk_classify.append(temp_classification_List[x][1])
-            classification_labels.append(temp_classification_List[x][0])
-        if alignment_classifier:
-            Classifiers.alignment_Classification(run_classify, walk_classify)
-        if angle_classifier:
-            Classifiers.angle_Classification(classification_list,classification_labels)
+    if alignment_classifier:
+        Classifiers.alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
+    if angle_classifier:
+        Classifiers.angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
 
     for i, action in enumerate(action_names):
         # Select all sequences belonging to the current action.
@@ -155,7 +137,7 @@ if True:
     Plotting.plotU1(U1)
     Plotting.plotU2(U2, labelsStacked, action_names)
     Plotting.plotU3(U3)
-    plt.show()
+    # plt.show()
 
 else:
 
@@ -231,4 +213,5 @@ else:
     Plotting.plotU3(U3)
     plt.show()
 if SVM_classifier:
-    Classifiers.SVM_Classification(U2[:,0:3], labelsStacked)
+    seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2[:,0:2], labelsStacked, test_size = 0.20)
+    Classifiers.SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
