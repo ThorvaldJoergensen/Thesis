@@ -72,44 +72,49 @@ if True:
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
     seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain,labelsTrain,5)
-    print("seqFolds:", len(seqFolds))
 
     action_steps = []
     Lengths = []
     nrPerAction = []
     if alignment_classifier:
+        print()
+        print("Starting Alignment Classifier")
         accuracies = []
+        runtimes = []
         for i,x in enumerate(seqFolds):
-            seqsToTrain = []
-            labelsToTrain = []
-            seqsToTrain.extend(seqFolds[:i])
-            seqsToTrain.extend(seqFolds[i+1:])
-            labelsToTrain.extend(labelFolds[:i])
-            labelsToTrain.extend(labelFolds[i+1:])
-            seq_list = [item for sublist in seqsToTrain for item in sublist]
-            label_list = [item for sublist in labelsToTrain for item in sublist]
-            accuracy = Classifiers.alignment_Classification(seq_list, x, label_list, labelFolds[i])
+            seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
+            accuracy, runtime = Classifiers.alignment_Classification(seq_list, x, label_list, labelFolds[i])
             accuracies.append(accuracy)
-        accuracies.append(Classifiers.alignment_Classification(seq_list, seqsTest, label_list, labelsTest))
+            runtimes.append(runtime)
+        accuracy , runtime =Classifiers.alignment_Classification(seq_list, seqsTest, label_list, labelsTest)
+        accuracies.append(accuracy)
+        runtimes.append(runtime)
         meanAccuracy = np.mean(np.array(accuracies))
+        meanRunTime = np.mean(np.array(runtimes))
         print("Mean accuracy of alignment classifier: ", meanAccuracy)
+        print("Mean runtime of alignment classifier: ", meanRunTime)
 
     if angle_classifier:
+        print()
+        print("Starting Angle Classifier")
         angles = []
+        accuracies = []
+        runtimes = []
         for i, x in enumerate(seqFolds):
-            seqsToTrain = []
-            labelsToTrain = []
-            seqsToTrain.extend(seqFolds[:i])
-            seqsToTrain.extend(seqFolds[i+1:])
-            labelsToTrain.extend(labelFolds[:i])
-            labelsToTrain.extend(labelFolds[i+1:])
-            seq_list = [item for sublist in seqsToTrain for item in sublist]
-            label_list = [item for sublist in labelsToTrain for item in sublist]
-            accuracy , splitAngle = Classifiers.angle_Classification(seq_list, x, label_list, labelFolds[i])
+            seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
+            accuracy , splitAngle, runtime = Classifiers.angle_Classification(seq_list, x, label_list, labelFolds[i])
             angles.append(splitAngle)
+            runtimes.append(runtime)
+            accuracies.append(accuracy)
         meanAngle = np.mean(np.array(angles))
+        meanAccuracy = np.mean(np.array(accuracies))
+        meanRunTime = np.mean(np.array(runtimes))
         print("Mean Angle of angle classifier",meanAngle)
-        Classifiers.angle_Classification([],seqsTest, [], labelsTest, meanAngle)
+        print("Mean Runtime of angle classifier",meanRunTime)
+        print("Mean Accuracy of angle classifier",meanAccuracy)
+        accuracy, angle, runtime = Classifiers.angle_Classification([],seqsTest, [], labelsTest, meanAngle)
+        print("Accuracy of final test run using mean angle: ", accuracy)
+        print()
         
 
     for i, action in enumerate(action_names):
@@ -246,20 +251,20 @@ else:
     Plotting.plotU3(U3)
     plt.show()
 if SVM_classifier:
+    print()
+    print("Starting SVM Classifier")
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2[:,0:2], labelsStacked, test_size = 0.20)
     
     seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain,labelsTrain,5)
     accuracies = []
+    runtimes = []
     for i, x in enumerate(seqFolds):
-            seqsToTrain = []
-            labelsToTrain = []
-            seqsToTrain.extend(seqFolds[:i])
-            seqsToTrain.extend(seqFolds[i+1:])
-            labelsToTrain.extend(labelFolds[:i])
-            labelsToTrain.extend(labelFolds[i+1:])
-            seq_list = [item for sublist in seqsToTrain for item in sublist]
-            label_list = [item for sublist in labelsToTrain for item in sublist]
-            accuracy = Classifiers.SVM_Classification(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
+            seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
+            accuracy, runtime = Classifiers.SVM_Classification(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
             accuracies.append(accuracy)
-    accuracies.append(Classifiers.SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest))
+            runtimes.append(runtime)
+    accuracy, runtime = Classifiers.SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
+    accuracies.append(accuracy)
+    runtimes.append(runtime)
     print("Mean SVM accuracy: ", np.mean(np.array(accuracies)))
+    print("Mean SVM runtime: ", np.mean(np.array(runtimes)))

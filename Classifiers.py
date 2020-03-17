@@ -12,7 +12,7 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
 def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
-    print("Starting alignment classifier")
+    #print("Starting alignment classifier")
     start = datetime.now()
     runRef = DTWHelpers.getSyntheticGraph(5)
     walkRef = DTWHelpers.getSyntheticGraph(9)
@@ -71,28 +71,29 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     # print("Wrong: ", wrong)
     # print("Equal: ", equal)
 
-    fig = plt.figure()
-    ax = plt.axes()
-    # Plot the movement of the z coordinate of the right foot
-    for i in range(0, int(len(run_runAligned))):
-        ax.plot(run_runAligned[i][11,:], c="b")
-    for i in range(0, int(len(walk_runAligned))):
-        ax.plot(walk_runAligned[i][11,:], c="g")
-    ax.plot(runRef, c="r")
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # # Plot the movement of the z coordinate of the right foot
+    # for i in range(0, int(len(run_runAligned))):
+    #     ax.plot(run_runAligned[i][11,:], c="b")
+    # for i in range(0, int(len(walk_runAligned))):
+    #     ax.plot(walk_runAligned[i][11,:], c="g")
+    # ax.plot(runRef, c="r")
 
-    fig = plt.figure()
-    ax = plt.axes()
-    # Plot the movement of the z coordinate of the right foot
-    for i in range(0, int(len(run_walkAligned))):
-        ax.plot(run_walkAligned[i][11,:], c="b")
-    for i in range(0, int(len(walk_walkAligned))):
-        ax.plot(walk_walkAligned[i][11,:], c="g")
-    ax.plot(walkRef, c="r")
-    plt.show()
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # # Plot the movement of the z coordinate of the right foot
+    # for i in range(0, int(len(run_walkAligned))):
+    #     ax.plot(run_walkAligned[i][11,:], c="b")
+    # for i in range(0, int(len(walk_walkAligned))):
+    #     ax.plot(walk_walkAligned[i][11,:], c="g")
+    # ax.plot(walkRef, c="r")
+    # plt.show()
 
-    print("Alignment Classifier Accuracy: ", correct/len(predictedLabels))
-    print("Runtime for alignment classifier: ", end - start)
-    return correct/len(predictedLabels)
+    #print("Alignment Classifier Accuracy: ", correct/len(predictedLabels))
+    #print("Runtime for alignment classifier: ", end - start)
+    runtime = end - start
+    return correct/len(predictedLabels), runtime
 
 def angle(a,b,c):
     ba = a - b
@@ -107,7 +108,7 @@ def angle(a,b,c):
     return np.degrees(Angle)
 
 def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngle=-1.0):
-    print("Starting angle classifier")
+    #print("Starting angle classifier")
     start = datetime.now()
     if not givenAngle == -1:
         splitAngle = givenAngle
@@ -132,7 +133,7 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
                 if i[1] < walk_min:
                     walk_min = i[1]
         splitAngle = run_max + ((walk_min - run_max) / 2)
-    print("Split angle calculated as: ", splitAngle)
+    #print("Split angle calculated as: ", splitAngle)
 
     
     maxAnglesTest = []
@@ -153,10 +154,11 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
 
     # print("Correct: ", correct)
     # print("Wrong: ", wrong)
-    print("Angle Classifier Accuracy: ", correct/maxAnglesTest.shape[0])
+    #print("Angle Classifier Accuracy: ", correct/maxAnglesTest.shape[0])
     end = datetime.now()
-    print("Runtime for angle classifier: ", end - start)
-    return correct/maxAnglesTest.shape[0], splitAngle
+    #print("Runtime for angle classifier: ", end - start)
+    runtime = end - start
+    return correct/maxAnglesTest.shape[0], splitAngle, runtime
     # print("Max run angle: ", run_max)
     # print("Min walk angle: ", walk_min)
 
@@ -172,8 +174,21 @@ def create_Folds(seqsTrain, labelsTrain, nrSplits):
         labelFolds.append(labelsTrain[splitSize*i:splitSize*(i+1)])
     return seqFolds, labelFolds
 
+def getFoldSubList(foldList, labelList, index):
+    seqsToTrain = []
+    labelsToTrain = []
+    seqsToTrain.extend(foldList[:index])
+    seqsToTrain.extend(foldList[index+1:])
+    labelsToTrain.extend(labelList[:index])
+    labelsToTrain.extend(labelList[index+1:])
+    seq_list = [item for sublist in seqsToTrain for item in sublist]
+    label_list = [item for sublist in labelsToTrain for item in sublist]
+    return seq_list, label_list
+
 def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
-    print("Starting SVM classifier")
+    import os
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    #print("Starting SVM classifier")
     start = datetime.now()
     
     batch_size = labelsTest.shape[0]
@@ -239,7 +254,7 @@ def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     # accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction,tf.argmax(y_target,0)), tf.float32))
 
     pred_output = tf.matmul(tf.multiply(y_target, alpha), pred_kernel)
-    prediction = tf.arg_max(pred_output-tf.expand_dims(tf.reduce_mean(pred_output,1), 1), 0)
+    prediction = tf.math.argmax(pred_output-tf.expand_dims(tf.reduce_mean(pred_output,1), 1), 0)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction,tf.argmax(y_target,0)), tf.float32))
 
     # Define optimizer and training step
@@ -271,32 +286,33 @@ def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
         batch_accuracy.append(acc_temp)
 
         # For every 1000 epochs, print loss and accuracy
-        if (i+1)%1000==0:
-            print("Step #{}".format(i+1))
-            print("Loss = ", temp_loss)
-            print("Accuracy = ", acc_temp)
+        # if (i+1)%1000==0:
+        #     print("Step #{}".format(i+1))
+        #     print("Loss = ", temp_loss)
+        #     print("Accuracy = ", acc_temp)
     # After training, run on test set.
     temp_test_accuracy = sess.run(accuracy, feed_dict={x_data: seqsTest, y_target: labelsTest, prediction_grid: seqsTest})
-    print ("SVM classifier accuracy: ", temp_test_accuracy)
+    #print ("SVM classifier accuracy: ", temp_test_accuracy)
 
     end = datetime.now()
-    print("Runtime for SVM classifier: ", end - start)
+    #print("Runtime for SVM classifier: ", end - start)
+    runtime = end - start
 
-    fig = plt.figure(figsize=(13,4))
+    # fig = plt.figure(figsize=(13,4))
 
-    # plot batch accuracy
-    ax1 = fig.add_subplot(121)
-    ax1.plot(batch_accuracy, color="black", linewidth=0.1)
-    ax1.set_title("Accuracy per batch")
-    ax1.set_xlabel("Batch")
-    ax1.set_ylabel("Accuracy")
+    # # plot batch accuracy
+    # ax1 = fig.add_subplot(121)
+    # ax1.plot(batch_accuracy, color="black", linewidth=0.1)
+    # ax1.set_title("Accuracy per batch")
+    # ax1.set_xlabel("Batch")
+    # ax1.set_ylabel("Accuracy")
 
-    # plot loss over time
-    ax2 = fig.add_subplot(122)
-    ax2.plot(loss_vec, color="black", linewidth=0.1)
-    ax2.set_title("Loss per batch")
-    ax2.set_xlabel("Batch")
-    ax2.set_ylabel("Loss")
+    # # plot loss over time
+    # ax2 = fig.add_subplot(122)
+    # ax2.plot(loss_vec, color="black", linewidth=0.1)
+    # ax2.set_title("Loss per batch")
+    # ax2.set_xlabel("Batch")
+    # ax2.set_ylabel("Loss")
 
     # # find boundaries for contour plot
     # abscissa_min, abscissa_max = seqsTest[:, 0].min()-1, seqsTest[:, 0].max()+1
@@ -345,12 +361,12 @@ def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     # plt.title("Decision boundary of trained SVM")
     # plt.legend(loc="upper left", framealpha=0.25)
 
-    plt.show()
-    return temp_test_accuracy
+    # plt.show()
+    return temp_test_accuracy, runtime
 
 
 def SVM_Classification_old(data, labels):
-    print("Starting SVM classifier")
+    #print("Starting SVM classifier")
     start = datetime.now()
     # data = np.concatenate((U2[36:72],U2[85:169]))
 
