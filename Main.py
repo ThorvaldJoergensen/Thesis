@@ -71,13 +71,46 @@ if True:
 
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
+    seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain,labelsTrain,5)
+    print("seqFolds:", len(seqFolds))
+
     action_steps = []
     Lengths = []
     nrPerAction = []
     if alignment_classifier:
-        Classifiers.alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
+        accuracies = []
+        for i,x in enumerate(seqFolds):
+            seqsToTrain = []
+            labelsToTrain = []
+            seqsToTrain.extend(seqFolds[:i])
+            seqsToTrain.extend(seqFolds[i+1:])
+            labelsToTrain.extend(labelFolds[:i])
+            labelsToTrain.extend(labelFolds[i+1:])
+            seq_list = [item for sublist in seqsToTrain for item in sublist]
+            label_list = [item for sublist in labelsToTrain for item in sublist]
+            accuracy = Classifiers.alignment_Classification(seq_list, x, label_list, labelFolds[i])
+            accuracies.append(accuracy)
+        accuracies.append(Classifiers.alignment_Classification(seq_list, seqsTest, label_list, labelsTest))
+        meanAccuracy = np.mean(np.array(accuracies))
+        print("Mean accuracy of alignment classifier: ", meanAccuracy)
+
     if angle_classifier:
-        Classifiers.angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
+        angles = []
+        for i, x in enumerate(seqFolds):
+            seqsToTrain = []
+            labelsToTrain = []
+            seqsToTrain.extend(seqFolds[:i])
+            seqsToTrain.extend(seqFolds[i+1:])
+            labelsToTrain.extend(labelFolds[:i])
+            labelsToTrain.extend(labelFolds[i+1:])
+            seq_list = [item for sublist in seqsToTrain for item in sublist]
+            label_list = [item for sublist in labelsToTrain for item in sublist]
+            accuracy , splitAngle = Classifiers.angle_Classification(seq_list, x, label_list, labelFolds[i])
+            angles.append(splitAngle)
+        meanAngle = np.mean(np.array(angles))
+        print("Mean Angle of angle classifier",meanAngle)
+        Classifiers.angle_Classification([],seqsTest, [], labelsTest, meanAngle)
+        
 
     for i, action in enumerate(action_names):
         # Select all sequences belonging to the current action.
@@ -214,4 +247,19 @@ else:
     plt.show()
 if SVM_classifier:
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2[:,0:2], labelsStacked, test_size = 0.20)
-    Classifiers.SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest)
+    
+    seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain,labelsTrain,5)
+    accuracies = []
+    for i, x in enumerate(seqFolds):
+            seqsToTrain = []
+            labelsToTrain = []
+            seqsToTrain.extend(seqFolds[:i])
+            seqsToTrain.extend(seqFolds[i+1:])
+            labelsToTrain.extend(labelFolds[:i])
+            labelsToTrain.extend(labelFolds[i+1:])
+            seq_list = [item for sublist in seqsToTrain for item in sublist]
+            label_list = [item for sublist in labelsToTrain for item in sublist]
+            accuracy = Classifiers.SVM_Classification(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
+            accuracies.append(accuracy)
+    accuracies.append(Classifiers.SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest))
+    print("Mean SVM accuracy: ", np.mean(np.array(accuracies)))

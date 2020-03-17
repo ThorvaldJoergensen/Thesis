@@ -106,29 +106,32 @@ def angle(a,b,c):
 
     return np.degrees(Angle)
 
-def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
+def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngle=-1.0):
     print("Starting angle classifier")
     start = datetime.now()
-    maxAnglesTrain = []
-    splitAngle = -1.0
-    for j, x in enumerate(seqsTrain):
-        angles = []
-        seq = np.array(x)
-        for i in range(0,seq.shape[1]):
-            angles.append(angle(seq[9:12, i],seq[6:9, i], seq[3:6, i]))
-        maxAnglesTrain.append((labelsTrain[j],np.nanmin(np.array(angles))))
-    maxAnglesTrain = np.array(maxAnglesTrain)
-    run_max = -math.inf
-    walk_min = math.inf
-    
-    for i in maxAnglesTrain:
-        if i[0] == 5:
-            if i[1] > run_max:
-                run_max = i[1]
-        elif i[0] == 9:
-            if i[1] < walk_min:
-                walk_min = i[1]
-    splitAngle = run_max + ((walk_min - run_max) / 2)
+    if not givenAngle == -1:
+        splitAngle = givenAngle
+    else:
+        maxAnglesTrain = []
+        splitAngle = -1.0
+        for j, x in enumerate(seqsTrain):
+            angles = []
+            seq = np.array(x)
+            for i in range(0,seq.shape[1]):
+                angles.append(angle(seq[9:12, i],seq[6:9, i], seq[3:6, i]))
+            maxAnglesTrain.append((labelsTrain[j],np.nanmin(np.array(angles))))
+        maxAnglesTrain = np.array(maxAnglesTrain)
+        run_max = -math.inf
+        walk_min = math.inf
+        
+        for i in maxAnglesTrain:
+            if i[0] == 5:
+                if i[1] > run_max:
+                    run_max = i[1]
+            elif i[0] == 9:
+                if i[1] < walk_min:
+                    walk_min = i[1]
+        splitAngle = run_max + ((walk_min - run_max) / 2)
     print("Split angle calculated as: ", splitAngle)
 
     
@@ -153,12 +156,21 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     print("Angle Classifier Accuracy: ", correct/maxAnglesTest.shape[0])
     end = datetime.now()
     print("Runtime for angle classifier: ", end - start)
-    return correct/maxAnglesTest.shape[0]
+    return correct/maxAnglesTest.shape[0], splitAngle
     # print("Max run angle: ", run_max)
     # print("Min walk angle: ", walk_min)
 
         
     # plot1[j][1] = angle(AlignedSeqs[i, 9:12, j],AlignedSeqs[i, 6:9, j], AlignedSeqs[i, 3:6, j]) #Leg
+
+def create_Folds(seqsTrain, labelsTrain, nrSplits):
+    seqFolds = []
+    labelFolds = []
+    splitSize = int(len(seqsTrain)/nrSplits)
+    for i in range(0,nrSplits):
+        seqFolds.append(seqsTrain[splitSize*i:splitSize*(i+1)])
+        labelFolds.append(labelsTrain[splitSize*i:splitSize*(i+1)])
+    return seqFolds, labelFolds
 
 def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     print("Starting SVM classifier")
@@ -286,54 +298,55 @@ def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     ax2.set_xlabel("Batch")
     ax2.set_ylabel("Loss")
 
-    # find boundaries for contour plot
-    abscissa_min, abscissa_max = seqsTest[:, 0].min()-1, seqsTest[:, 0].max()+1
-    ordinate_min, ordinate_max = seqsTest[:, 1].min()-1, seqsTest[:, 1].max()+1
+    # # find boundaries for contour plot
+    # abscissa_min, abscissa_max = seqsTest[:, 0].min()-1, seqsTest[:, 0].max()+1
+    # ordinate_min, ordinate_max = seqsTest[:, 1].min()-1, seqsTest[:, 1].max()+1
 
-    # generate mesh grid of points
-    xx, yy = np.meshgrid(
-        np.linspace(abscissa_min, abscissa_max, 1000),
-        np.linspace(ordinate_min, ordinate_max, 1000)
-    )
-    grid_points = np.squeeze(np.c_[yy.ravel(), xx.ravel()])
-    print(grid_points.shape)
+    # # generate mesh grid of points
+    # xx, yy = np.meshgrid(
+    #     np.linspace(abscissa_min, abscissa_max, 1000),
+    #     np.linspace(ordinate_min, ordinate_max, 1000)
+    # )
+    # grid_points = np.squeeze(np.c_[yy.ravel(), xx.ravel()])
+    # print(grid_points.shape)
 
-    # find predictions for grid of points
-    grid_preds = sess.run(prediction, feed_dict={
-        x_data: seqsTest,
-        y_target: labelsTest,
-        prediction_grid: grid_points
-    })
-    grid_preds = grid_preds.reshape(xx.shape)
+    # # find predictions for grid of points
+    # grid_preds = sess.run(prediction, feed_dict={
+    #     x_data: seqsTest,
+    #     y_target: labelsTest,
+    #     prediction_grid: grid_points
+    # })
+    # grid_preds = grid_preds.reshape(xx.shape)
 
-    # plot our decision boundary
-    plt.imshow(
-        grid_preds,
-        extent=[abscissa_min, abscissa_max, ordinate_min, ordinate_max],
-        origin="lower",
-        cmap="bwr",
-        aspect="auto",
-        alpha=0.375
-    )
-    plt.contour(xx, yy, grid_preds, 1, colors="black", alpha=0.5)
+    # # plot our decision boundary
+    # plt.imshow(
+    #     grid_preds,
+    #     extent=[abscissa_min, abscissa_max, ordinate_min, ordinate_max],
+    #     origin="lower",
+    #     cmap="bwr",
+    #     aspect="auto",
+    #     alpha=0.375
+    # )
+    # plt.contour(xx, yy, grid_preds, 1, colors="black", alpha=0.5)
 
-    # plot our points
-    plt.scatter(class1_x[:, 0], class1_x[:, 1],
-        label = "Class 1 (+1)",
-        color = "none",
-        edgecolor = "red"
-    )
-    plt.scatter(class2_x[:, 0], class2_x[:, 1],
-        label = "Class 2 (-1)",
-        color = "none",
-        edgecolor = "blue"
-    )
+    # # plot our points
+    # plt.scatter(class1_x[:, 0], class1_x[:, 1],
+    #     label = "Class 1 (+1)",
+    #     color = "none",
+    #     edgecolor = "red"
+    # )
+    # plt.scatter(class2_x[:, 0], class2_x[:, 1],
+    #     label = "Class 2 (-1)",
+    #     color = "none",
+    #     edgecolor = "blue"
+    # )
 
-    # add title and legend
-    plt.title("Decision boundary of trained SVM")
-    plt.legend(loc="upper left", framealpha=0.25)
+    # # add title and legend
+    # plt.title("Decision boundary of trained SVM")
+    # plt.legend(loc="upper left", framealpha=0.25)
 
     plt.show()
+    return temp_test_accuracy
 
 
 def SVM_Classification_old(data, labels):

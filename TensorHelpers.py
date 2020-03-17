@@ -115,5 +115,5 @@ def svd(tensor):
     U2 = U[1]
     U3 = U[2]
 
-    print('Fnished HOSVD')
+    print('Finished HOSVD')
     return U1, U2, U3, core_S
