@@ -6,6 +6,7 @@ import mpl_toolkits.mplot3d as plt3d
 import matplotlib.animation as animation
 import math
 import copy
+import os
 
 from fastdtw import fastdtw
 from dtaidistance import dtw as dtw2
@@ -15,15 +16,16 @@ from dtwalign import dtw as dtwalign
 
 from scipy.io.matlab import loadmat
 
-import Helpers
 sys.path.insert(1, '../')
 import Plotting
+import TensorHelpers
+import DTWHelpers
 sys.path.insert(1,'../Tensor')
 import AlignData
 
 id = 11
-
-seqList, labels, minNrFrames, medianNrFrames = Helpers.loadData()
+os.chdir('../')
+seqList, labels, minNrFrames, medianNrFrames = TensorHelpers.loadData()
 # seqList = AlignData.temporalLazy(seqList, medianNrFrames)
 print(seqList.shape)
 runSeqs = seqList[36:72]
@@ -191,24 +193,24 @@ def findSteps(seq):
     FinalLast = []
 
     for i, val in enumerate(FirstofChunk):
-        if i != 0 and FirstofChunk[i-1] >= val-shift:
-            continue
-        else:
-            FinalFirst.append(val)
+        # if i != 0 and FirstofChunk[i-1] >= val-shift:
+        #     continue
+        # else:
+        FinalFirst.append(val)
 
     for i, val in enumerate(LastofChunk):
-        if i < len(LastofChunk)-1 and LastofChunk[i+1] <= val+shift:
-            continue
-        else:
-            FinalLast.append(val)
+        # if i < len(LastofChunk)-1 and LastofChunk[i+1] <= val+shift:
+        #     continue
+        # else:
+        FinalLast.append(val)
             
-    for i, val in enumerate(FinalFirst):
-        for j in range(0, i):
-            if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
-                FinalFirst[i] = FinalLast[j]
-            if val < FinalFirst[i-1]+((FinalLast[i-1] - FinalFirst[i-1])/2):
-                FinalFirst.pop(i)
-                FinalLast.pop(i)
+    # for i, val in enumerate(FinalFirst):
+    #     for j in range(0, i):
+    #         if FinalLast[j] > val and val > FinalFirst[i-1]+((FinalLast[j] - FinalFirst[i-1])/2):
+    #             FinalFirst[i] = FinalLast[j]
+    #         if val < FinalFirst[i-1]+((FinalLast[i-1] - FinalFirst[i-1])/2):
+    #             FinalFirst.pop(i)
+    #             FinalLast.pop(i)
             # elif :
             #    start = finalFirst
             #    end = finalLast[i] 
@@ -220,13 +222,15 @@ def findSteps(seq):
 stepSeqs = []
 
 for i in range(0, Aligned.shape[0]):
-    finalFirst, finalLast, secondApproach = findSteps(np.array(AlignedRightForm[i]))
+    finalFirst, finalLast = DTWHelpers.findSteps(np.array(AlignedRightForm[i]))
     if i in [0, 17, 35,36,37]:
         fig = plt.figure()
         ax = plt.axes()
         ax.plot(AlignedRightForm[i],c="b", label="1")
-        ax.scatter(finalFirst,np.full([len(finalFirst)],-33), c="g")
-        ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
+        for x in finalFirst:
+            ax.axvline(x, c="g")
+        for x in finalLast:
+            ax.axvline(x, c="r")
         ax.axhline(np.average(AlignedRightForm[i]), c="black")
         # ax.plot(y22[:,0],y22[:,1],c="g", label="2")
         plt.show()
@@ -269,7 +273,7 @@ for i, x in enumerate(stepSeqs):
     stepSeqs[i][1] = stepSeqs[i][1][:,res.get_warping_path(target="query")]
     
     temp = np.array(RightFormFull[stepSeqs[i][0][0]])[:,stepSeqs[i][0][1]:stepSeqs[i][0][2]][:,res.get_warping_path(target="query")]
-    temp = Helpers.smoothSeq(temp, res.get_warping_path(target="query"))
+    temp = DTWHelpers.smoothSeq(temp, res.get_warping_path(target="query"))
     # ani = Plotting.animate(temp)
     # ani._start
     # plt.show()
