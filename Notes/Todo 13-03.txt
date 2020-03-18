@@ -4,3 +4,8 @@ Read for monday 16/03:
 On monday:
     implement cross validation
     Formalise quality measures on classifier
+    
+On Friday:
+    Check the selection of steps, the logic doesnt fit the result
+    Shouldn't the reference steps have the same lowest point?
+    Now is the time to revisit the scaling that we do not use
