@@ -26,7 +26,6 @@ def spatial(data):
                 # Get transformation values to align current shape to the reference shape by looking at the hip, spine, left- & right-shoulder points
                 _, _, transform = procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), True, True)
                 # Perform transformation by scaling and rotating on current shape
-                # print(transform['scale'])
                 Z = np.matmul(transform['scale']*np.transpose(frameShape),transform['rotation'])
                 # Transpose the transformation shape and update current shape
                 frameShape = np.transpose(Z)
