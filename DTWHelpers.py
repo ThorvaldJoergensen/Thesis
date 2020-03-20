@@ -43,13 +43,9 @@ def getSyntheticGraph(id):
         fullSeq.extend(topToBottomSeq)
         fullSeq.extend(bottomToEndSeq)
         
-        # fig = plt.figure()
-        # ax = plt.axes()
-        # # Smooth the calculated graph to remove the completely straight lines
+        # Smooth the calculated graph to remove the completely straight lines
         from scipy.signal import savgol_filter
         yhat = savgol_filter(fullSeq, 51, 3)
-        # ax.plot(yhat)
-        # plt.show()
     #If the id is walking sequence
     elif id == 9:
         start = -34.0
@@ -81,12 +77,8 @@ def getSyntheticGraph(id):
         fullSeq.extend(startSeq)
         fullSeq.extend(topToBottomSeq)
         fullSeq.extend(bottomToEndSeq)
-        # fig = plt.figure()
-        # ax = plt.axes()
         from scipy.signal import savgol_filter
         yhat = savgol_filter(fullSeq, 51, 3)
-        # ax.plot(yhat)
-        # plt.show()
     return yhat
 
 # Method to find the steps in a given sequence

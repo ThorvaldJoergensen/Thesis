@@ -175,7 +175,7 @@ if True:
     Plotting.plotU1(U1)
     Plotting.plotU2(U2, labelsStacked, action_names)
     Plotting.plotU3(U3)
-    # plt.show()
+    plt.show()
 
 else:
 

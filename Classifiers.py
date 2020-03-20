@@ -17,6 +17,14 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     runRef = DTWHelpers.getSyntheticGraph(5)
     walkRef = DTWHelpers.getSyntheticGraph(9)
     
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # ax.plot(runRef, label="Run reference")
+    # ax.plot(walkRef, label="Walk reference")
+    # plt.legend()
+    # plt.show()
+
+
     walkSeqs = []
     runSeqs = []
 
@@ -365,7 +373,7 @@ def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     return temp_test_accuracy, runtime
 
 
-def SVM_Classification_old(data, labels):
+def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
     #print("Starting SVM classifier")
     start = datetime.now()
     # data = np.concatenate((U2[36:72],U2[85:169]))
@@ -373,11 +381,11 @@ def SVM_Classification_old(data, labels):
     # labels2 = []
     # for i, value in enumerate(labels):
     #     labels2.append(int(classes.index(value)))
-    labels2 = labels#np.array(labels2)
-    labels2 = np.where(labels2==5, 0, labels2)
-    labels2 = np.where(labels2==9, 1, labels2)
-    labels2 = np.ravel(labels2)
-    X_train, X_test, Y_train, Y_test = train_test_split(data, labels2, test_size = 0.25)
+    # labels2 = labels#np.array(labels2)
+    # labels2 = np.where(labels2==5, 0, labels2)
+    # labels2 = np.where(labels2==9, 1, labels2)
+    # labels2 = np.ravel(labels2)
+    # X_train, X_test, Y_train, Y_test = train_test_split(data, labels2, test_size = 0.25)
 
     # SVC with GridSearchCV
     # Dimension of Train and Test set 
@@ -437,8 +445,9 @@ def SVM_Classification_old(data, labels):
     # print("\n")
     # print(classification_report(Y_test,Y_pred_label))
 
-    print("Training set score for SVM: %f" % final_model.score(X_train_scaled , Y_train))
-    print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
+    # print("Training set score for SVM: %f" % final_model.score(X_train_scaled , Y_train))
+    # print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
     end = datetime.now()
-    print("Runtime for SVM classifier: ", end - start)
+    return final_model.score(X_test_scaled, Y_test), (end-start)
+    # print("Runtime for SVM classifier: ", end - start)
 

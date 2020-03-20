@@ -24,8 +24,9 @@ def spatial(data):
                 seq0 = frameShape
             else:
                 # Get transformation values to align current shape to the reference shape by looking at the hip, spine, left- & right-shoulder points
-                _, _, transform = procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), False, True)
+                _, _, transform = procrustes(np.transpose(seq0[:,[0,7,9,12]]), np.transpose(frameShape[:,[0,7,9,12]]), True, True)
                 # Perform transformation by scaling and rotating on current shape
+                # print(transform['scale'])
                 Z = np.matmul(transform['scale']*np.transpose(frameShape),transform['rotation'])
                 # Transpose the transformation shape and update current shape
                 frameShape = np.transpose(Z)
@@ -33,7 +34,7 @@ def spatial(data):
                 triangle_reference = seq0[:,index_inner]
                 triangle_current = frameShape[:,index_inner]
                 # Get transformation values to align current shape to the reference shape by looking at reference points
-                _,_, transform2 = procrustes(np.transpose(triangle_reference), np.transpose(triangle_current), False, True)
+                _,_, transform2 = procrustes(np.transpose(triangle_reference), np.transpose(triangle_current), True, True)
                 # Perform transformation by scaling and rotating on current shape
                 frameShape_transformed = np.matmul(transform2['scale']*np.transpose(frameShape),transform2['rotation'])
                 # Transpose the transformation shape and update current shape

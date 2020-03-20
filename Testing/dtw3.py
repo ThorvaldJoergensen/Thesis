@@ -258,15 +258,15 @@ originalSteps = copy.deepcopy(stepSeqs)
 alignedSteps = []
 # Mindre sequence skal være query, altså først i metode kaldet
 for i, x in enumerate(stepSeqs):
-    if i == longestId:
-        alignedSteps.append(x[1])
-        continue
+    # if i == longestId:
+    #     alignedSteps.append(x[1])
+    #     continue
     
     # fig, (ax1, ax2) = plt.subplots(1,2,figsize=(20,5))
     # ax1.plot(x[1][id,:])    
     # ax2.plot(originalSteps[longestId][1][id,:])    
     # plt.show()
-    res = dtwalign(x[1][id,:], stepSeqs[longestId][1][id,:],step_pattern="typeIVc")
+    res = dtwalign(x[1][id,:], DTWHelpers.getSyntheticGraph(9),step_pattern="typeIVc")
     # res.plot_path()
 
     # y12path = res.get_warping_path(target="reference")
