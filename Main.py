@@ -21,6 +21,22 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.patches as mpatches
 import matplotlib
 
+import scipy.optimize as opti
+
+# https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+# print("Scipy optimization test")
+# outer_opt = lambda x : inner_opt(x) - 3
+# inner_opt = lambda x : opti.rosen(x)
+# x0 = 0.1 * np.arange(10)
+# print(x0)
+# res = opti.minimize(outer_opt, x0, tol=1e-6)
+# resu = opti.rosen([0.99999995, 0.99999992, 0.99999986, 0.99999976, 0.99999955, 0.99999914, 0.99999831, 0.99999665, 0.99999331, 0.99998662])
+# print(resu)
+# print(resu-3)
+
+# print(res.x)
+
+# raise ValueError()
 
 seqList, labelList, minNrFrames, medianNrFrames = TensorHelpers.loadData()
 
@@ -68,6 +84,10 @@ if True:
     subSeqList = AlignData.spatial(subSeqList)
     # Reshape the data to 45, number of frames
     subSeqList = DTWHelpers.reshapeTo45(subSeqList)
+    
+    newSeq = subSeqList.pop(0)
+    newSeqLabel = labelsStacked[0]
+    labelsStacked = np.delete(labelsStacked,0).reshape([119,1])
 
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
@@ -251,6 +271,20 @@ else:
     Plotting.plotU3(U3)
     plt.show()
 if SVM_classifier:
+    stepSeqs = []
+    # Find all steps in each sequence and put them in a new list
+    finalFirst, finalLast = DTWHelpers.findSteps(np.array(newSeq[:][11][:]))
+    print(finalFirst, finalLast)
+    for j, x in enumerate(finalFirst):
+        temp = np.array(newSeq)
+        stepSeqs.append([newSeqLabel, temp[:,x:finalLast[j]]])
+
+    mean_body = np.mean(tensor, axis=(2,1))
+    mean_body.reshape(45,1)
+    f_hat = lambda u2,u3 : mean_body + np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2, (0,0)), u3, (0,0))
+    print(np.array(f_hat(U2[0,:],U3[0,:])).shape)
+    # opt_fun = lambda u2,u3: f_hat(u2,u3) - 
+
     print()
     print("Starting SVM Classifier")
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2[:,0:2], labelsStacked, test_size = 0.20)
