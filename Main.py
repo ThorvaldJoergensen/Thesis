@@ -158,12 +158,13 @@ if True:
     Lengths = np.array(Lengths)
     # Find the median length of the steps
     medianLength = np.median(Lengths)-1
-    fig = plt.figure()
-    ax = plt.axes()
-    # Plot the movement of the z coordinate of the right foot
-    for i in range(0, int(len(action_steps))):
-        for x in range(0,int(len(action_steps[i]))):
-            ax.plot(action_steps[i][x][11][:])
+    # fig = plt.figure()
+    # ax = plt.axes()
+
+    # # Plot the movement of the z coordinate of the right foot
+    # for i in range(0, int(len(action_steps))):
+    #     for x in range(0,int(len(action_steps[i]))):
+    #         ax.plot(action_steps[i][x][11][:])
     tensorList = []
     # Get each sequence and reshape them into 45,1,median length in order to horisontally stack them into a tensor of size 45, number of steps, median length
     for i in range(0,len(action_steps)):
@@ -192,10 +193,10 @@ if True:
     labelsStacked = np.array(labelsStacked)
     
     # Plot the new U matrices
-    Plotting.plotU1(U1)
-    Plotting.plotU2(U2, labelsStacked, action_names)
-    Plotting.plotU3(U3)
-    plt.show()
+    # Plotting.plotU1(U1)
+    # Plotting.plotU2(U2, labelsStacked, action_names)
+    # Plotting.plotU3(U3)
+    # plt.show()
 
 else:
 
@@ -269,25 +270,55 @@ else:
     Plotting.plotU1(U1)
     Plotting.plotU2(U2, labelsStacked, action_names)
     Plotting.plotU3(U3)
-    plt.show()
+    # plt.show()
 if SVM_classifier:
-    stepSeqs = []
-    # Find all steps in each sequence and put them in a new list
-    finalFirst, finalLast = DTWHelpers.findSteps(np.array(newSeq[:][11][:]))
-    print(finalFirst, finalLast)
-    for j, x in enumerate(finalFirst):
-        temp = np.array(newSeq)
-        stepSeqs.append([newSeqLabel, temp[:,x:finalLast[j]]])
+    # stepSeqs = []
+    # # Find all steps in each sequence and put them in a new list
+    # finalFirst, finalLast = DTWHelpers.findSteps(np.array(newSeq[:][11][:]))
+    # print(finalFirst, finalLast)
+    # for j, x in enumerate(finalFirst):
+    #     temp = np.array(newSeq)
+    #     stepSeqs.append([newSeqLabel, temp[:,x:finalLast[j]]])
+    
+    stepSeqs, _ = DTWHelpers.multiDTW([newSeq], 11, DTWHelpers.getSyntheticGraph(0))
+    from scipy.optimize import rosen_der
+    mean_new_shape = np.mean(tensor, axis=(2,1))
+    mean_new_shape.reshape(45,1)
+    mean_body = np.zeros((45,tensor.shape[2]))
+    for i, x in enumerate(mean_new_shape):
+        mean_body[i] = np.resize(x, tensor.shape[2])
 
-    mean_body = np.mean(tensor, axis=(2,1))
-    mean_body.reshape(45,1)
-    f_hat = lambda u2,u3 : mean_body + np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2, (0,0)), u3, (0,0))
-    print(np.array(f_hat(U2[0,:],U3[0,:])).shape)
+    f_hat = lambda u2,u3 : np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2, (0,0)), u3, (0,0)), mean_new_shape)
+    init_U2 = np.mean(U2, axis=0)
+    init_U3 = np.mean(U3, axis=0)
+    U3_hat = np.zeros(U3.shape)
+    for x in stepSeqs:
+        for i, frame in enumerate(x):
+            opt_fun = lambda u3: 0.5 * np.abs(np.linalg.norm(f_hat(init_U2,u3) - frame[i]))**2
+            # print(opt_fun(U3[i,:]))
+            U3_hat[i] = opti.minimize(opt_fun, U3[i,:], method='Newton-CG', jac=rosen_der, options={'maxiter':10}).x
+
+    # Continue from here:
+    #   Currently need to stack following results (Eq. 22)
+    #   Repeat untill convergence
+    f_hat = lambda u2,U3 : np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2, (0,0)), U3, (0,1)), mean_body)
+    opt_fun = lambda u2: 0.5 * np.abs(np.linalg.norm(f_hat(u2,U3_hat) - frame[i]))**2
+    u2_hat = opti.minimize(opt_fun, init_U2, method='Newton-CG', jac=rosen_der, options={'maxiter':10}).x
+    
+    print(U2.shape)
+    print(np.array(u2_hat).shape)
+    Plotting.plotU2(np.vstack((U2, u2_hat)), np.vstack((labelsStacked, [13])), np.append(action_names, 'Test'))
+    print(newSeqLabel)
+    plt.show()
+    print(init_U2.shape)
+    print(init_U3.shape)
     # opt_fun = lambda u2,u3: f_hat(u2,u3) - 
+    sys.exit()
+
 
     print()
     print("Starting SVM Classifier")
-    seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2[:,0:2], labelsStacked, test_size = 0.20)
+    seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2[:,0:3], labelsStacked, test_size = 0.20)
     
     seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain,labelsTrain,5)
     accuracies = []

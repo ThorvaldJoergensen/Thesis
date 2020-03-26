@@ -79,6 +79,39 @@ def getSyntheticGraph(id):
         fullSeq.extend(bottomToEndSeq)
         from scipy.signal import savgol_filter
         yhat = savgol_filter(fullSeq, 51, 3)
+    #This is the adjoint sequence
+    elif id == 0:
+        start = -33.5
+        top = -23.0
+        bottom = -35.0
+        end = -33.5
+
+        fullLength = 95
+
+        baseLength = 86.5
+        onePercent = baseLength/100
+        startToTop = 38.5
+        topToBottom = 32.0
+        bottomToEnd = 16.0
+
+        percent1 = startToTop/onePercent
+        percent2 = topToBottom/onePercent
+        percent3 = bottomToEnd/onePercent
+
+        onePercentOfFull = fullLength/100
+        fullStartToTop = int(onePercentOfFull * percent1)
+        fullTopToBottom = int(onePercentOfFull * percent2)
+        fullBottomToEnd = int(onePercentOfFull * percent3)
+
+        startSeq = np.linspace(start,top,fullStartToTop)
+        topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
+        bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
+        fullSeq = []
+        fullSeq.extend(startSeq)
+        fullSeq.extend(topToBottomSeq)
+        fullSeq.extend(bottomToEndSeq)
+        from scipy.signal import savgol_filter
+        yhat = savgol_filter(fullSeq, 51, 3)
     return yhat
 
 # Method to find the steps in a given sequence
@@ -177,6 +210,7 @@ def multiDTW(seqs, id, refSeq):
             # ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
             # plt.show()
     
+    adjoint_reference = getSyntheticGraph(0)
     longestId = -1
     maxLength = -1
     lengthList = []
@@ -193,6 +227,9 @@ def multiDTW(seqs, id, refSeq):
         res = dtwalign(x[1][id,:], refSeq,step_pattern="typeIVc")
         # if i == 4:
         #     smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"), True)
+        stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
+        # Align to adjoint reference graphs
+        res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
         stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
     return np.array(stepSeqs)[:,1], lengthList
 
