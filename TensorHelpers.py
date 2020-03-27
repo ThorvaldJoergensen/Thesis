@@ -17,8 +17,8 @@ def createMean(tensor):
 # Create a tensor model from a core tensor and the three U matrices
 def createTensor(core_S, U1, U2, U3):
     firstProduct = np.tensordot(core_S, U1, (0,1))
-    secodnProduct = np.tensordot(firstProduct,U2, (0,1))
-    finalProduct = np.tensordot(secodnProduct,U3,(0,1))
+    secondProduct = np.tensordot(firstProduct,U2, (0,1))
+    finalProduct = np.tensordot(secondProduct,U3,(0,1))
 
     tensor = dtensor(finalProduct)
     return tensor
