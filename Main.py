@@ -84,7 +84,13 @@ if True:
     subSeqList = AlignData.spatial(subSeqList)
     # Reshape the data to 45, number of frames
     subSeqList = DTWHelpers.reshapeTo45(subSeqList)
-    
+
+    # fig = plt.figure()
+    # plt.plot(DTWHelpers.getSyntheticGraph(5), c='b')
+    # plt.plot(DTWHelpers.getSyntheticGraph(9), c='g')
+    # plt.plot(DTWHelpers.getSyntheticGraph(0), c='r')
+    # plt.show()
+
     newSeq = subSeqList.pop(0)
     newSeqLabel = labelsStacked[0]
     labelsStacked = np.delete(labelsStacked,0).reshape([119,1])
@@ -136,7 +142,7 @@ if True:
         print("Accuracy of final test run using mean angle: ", accuracy)
         print()
         
-
+    # Need to re write so findSteps is called seperately from multiDTW so we can get medianlength and use this length to create our refseq
     for i, action in enumerate(action_names):
         # Select all sequences belonging to the current action.
         if (len(np.where(labelsStacked[:,0]==i+1)[0]) > 0):
@@ -169,7 +175,8 @@ if True:
     # Get each sequence and reshape them into 45,1,median length in order to horisontally stack them into a tensor of size 45, number of steps, median length
     for i in range(0,len(action_steps)):
         for x in range(0,len(action_steps[i])):
-            temp = np.array(action_steps[i][x]).reshape([45,1,int(medianLength)])
+            temp = np.array(action_steps[i][x]).reshape([45,1,int(94)])
+            #temp = np.array(action_steps[i][x]).reshape([45,1,int(medianLength)])
             if len(tensorList) == 0:
                 tensorList = temp
             else:
@@ -284,23 +291,46 @@ if SVM_classifier:
     mean_new_shape = np.mean(tensor, axis=(2,1))
     mean_new_shape.reshape(45,1)
     mean_body = np.zeros((45,tensor.shape[2]))
+    from datetime import datetime
     for i, x in enumerate(mean_new_shape):
         mean_body[i] = np.resize(x, tensor.shape[2])
 
     print("U2 mean shape: ",np.mean(U2, axis=0).shape)
     f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2, (0,0)), u3, (0,0)), mean_new_shape)
+    rand_U2 = np.random.rand(U2.shape[0])
+    rand_U3 = np.random.rand(U3.shape[0],U3.shape[1])
+    import concurrent.futures
     for g, x in enumerate(stepSeqs):
         init_U2 = np.mean(U2, axis=0)
-        u2_hat = init_U2
+        u2_hat = rand_U2
         init_U3 = np.mean(U3, axis=0)
-        U3_hat = U3
+        U3_hat = rand_U3
         U2_list = np.zeros([stepSeqs.shape[0],u2_hat.shape[0]])
+        def minimize_U3(id):
+            opt_funU3 = lambda u3: 0.5 * np.abs(np.linalg.norm(f_hatU3(u2_hat,u3) - x[:,id]))**2
+            return (id,opti.minimize(opt_funU3, U3_hat[id,:], method='SLSQP', jac=rosen_der, options={'maxiter':30}).x)#, constraints = ({'type': 'eq', 'fun': lambda x: x.sum() - 1.0, 'jac': lambda x: np.ones_like(x)})).x)
         for j in range (0,5):
-            for i in range (0,x.shape[1]):
-                opt_funU3 = lambda u3: 0.5 * np.abs(np.linalg.norm(f_hatU3(u2_hat,u3) - x[:,i]))**2
-                # print(opt_fun(U3[i,:]))
-                U3_hat[i] = opti.minimize(opt_funU3, U3_hat[i,:], method='Newton-CG', jac=rosen_der, options={'maxiter':10}).x
+            start = datetime.now()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                fibSubmit = {executor.submit(minimize_U3, n): n for n in range(0, x.shape[1])}
 
+                for future in concurrent.futures.as_completed(fibSubmit):
+                    try:
+                        n, f = future.result()
+                    except Exception as exc:
+                        print("Erro! {0}".format(exc))
+                    else:
+                        U3_hat[n] = f
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
+            #     for i, out1 in enumerate(executor.map(minimize_U3, range(0, x.shape[1]))):
+            #         U3_hat[i] = out1
+            end = datetime.now()
+
+            print("Time taken to estimate U3: ", end-start)
+            # for i in range (0,x.shape[1]):
+            #     opt_funU3 = lambda u3: 0.5 * np.abs(np.linalg.norm(f_hatU3(u2_hat,u3) - x[:,i]))**2
+            #     # print(opt_fun(U3[i,:]))
+            #     U3_hat[i] = opti.minimize(opt_funU3, U3_hat[i,:], method='Nelder-Mead', options={'maxiter':15}).x
     # Continue from here:
     #   Currently need to stack following results (Eq. 22)
     #   Repeat untill convergence
@@ -315,7 +345,7 @@ if SVM_classifier:
                     M2 = np.vstack((M2, x))
             f_hatList = []
             for i, x in enumerate(U3_hat):
-                f_hatList.append((f_hatU3(init_U2,x)- mean_new_shape).reshape(45,1))
+                f_hatList.append((f_hatU3(u2_hat,x)- mean_new_shape).reshape(45,1))
             f_hat_matrix = None
             for i, x in enumerate(f_hatList):
                 if f_hat_matrix is None:
@@ -323,7 +353,7 @@ if SVM_classifier:
                 else:
                     f_hat_matrix = np.vstack((f_hat_matrix, x))
             print(f_hat_matrix.shape)
-            u2_hat = np.matmul(np.linalg.pinv(M2),f_hat_matrix)
+            u2_hat = np.matmul(np.linalg.pinv(M2),f_hat_matrix).reshape(U2.shape[0])
             #u2_hat = np.mean(u2_hat, axis=0)
             print("u2 hat shape : ",u2_hat.shape)
 
@@ -334,11 +364,12 @@ if SVM_classifier:
     
         print(U2.shape)
         #print(np.array(u2_hat).shape)
-        Plotting.plotU2(np.vstack((U2, u2_hat.reshape(1,228))), np.vstack((labelsStacked, [13])), np.append(action_names, 'Test'))
+        print("Coordinates of U2: ", u2_hat.reshape(1,U2.shape[0])[0,:3])
+        Plotting.plotU2(np.vstack((U2, u2_hat.reshape(1,U2.shape[0]))), np.vstack((labelsStacked, [13])), np.append(action_names, 'Test'))
         print(newSeqLabel)
         plt.show()
-        print(init_U2.shape)
-        print(init_U3.shape)
+        print(u2_hat.shape)
+        print(U3_hat.shape)
     # opt_fun = lambda u2,u3: f_hat(u2,u3) - 
     sys.exit()
 
