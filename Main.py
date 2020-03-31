@@ -311,7 +311,7 @@ if SVM_classifier:
             return (id,opti.minimize(opt_funU3, U3_hat[id,:], method='SLSQP', jac=rosen_der, options={'maxiter':30}).x)#, constraints = ({'type': 'eq', 'fun': lambda x: x.sum() - 1.0, 'jac': lambda x: np.ones_like(x)})).x)
         for j in range (0,5):
             start = datetime.now()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
                 fibSubmit = {executor.submit(minimize_U3, n): n for n in range(0, x.shape[1])}
 
                 for future in concurrent.futures.as_completed(fibSubmit):
