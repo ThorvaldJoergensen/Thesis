@@ -91,7 +91,7 @@ if True:
     # plt.plot(DTWHelpers.getSyntheticGraph(9), c='g')
     # plt.plot(DTWHelpers.getSyntheticGraph(0), c='r')
     # plt.show()
-    currentlyTestingId = 50
+    currentlyTestingId = 0
     newSeq = subSeqList[currentlyTestingId]
     newSeqLabel = labelsStacked[currentlyTestingId]
     # labelsStacked = np.delete(labelsStacked,0).reshape([119,1])
@@ -280,13 +280,6 @@ else:
     Plotting.plotU3(U3)
     # plt.show()
 if SVM_classifier:
-    # stepSeqs = []
-    # # Find all steps in each sequence and put them in a new list
-    # finalFirst, finalLast = DTWHelpers.findSteps(np.array(newSeq[:][11][:]))
-    # print(finalFirst, finalLast)
-    # for j, x in enumerate(finalFirst):
-    #     temp = np.array(newSeq)
-    #     stepSeqs.append([newSeqLabel, temp[:,x:finalLast[j]]])
     stepSeqs, _ = DTWHelpers.multiDTW([newSeq], 11, DTWHelpers.getSyntheticGraph(0)) 
     from scipy.optimize import rosen_der
     mean_new_shape = np.mean(tensor, axis=(2,1))
@@ -300,54 +293,45 @@ if SVM_classifier:
     rand_U2 = np.random.rand(U2.shape[0])
     rand_U3 = np.random.rand(U3.shape[0],U3.shape[1])
     import concurrent.futures
-
-    f_hatU2 = lambda u2,U3 : np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2, (0,0)), U3, (0,1)), mean_body)
-    f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), u3, (1,0)), u2, (0,0)), mean_new_shape)
+    core_S_U1 = np.tensordot(core_S, U1, (0,1))
     
-    # EstU3 = U3
-    # M3 = np.transpose(np.tensordot(np.tensordot(core_S, U1, (0,1)), U2[currentlyTestingId],(0,0)))
-    # M3pinv = np.linalg.pinv(M3)
-    # for i, x in enumerate(EstU3):
-    #     EstU3[i] = np.matmul(M3pinv,np.subtract(f_hatU3(U2[currentlyTestingId],x), mean_new_shape))
-            
-    # M2List = []
-    # for i, x in enumerate(U3):
-    #     M2List.append(np.transpose(np.tensordot(np.tensordot(core_S, U1, (0,1)),x,(1,0))))
-    # M2 = None
-    # for i, x in enumerate(M2List):
-    #     if M2 is None:
-    #         M2 = x
-    #     else:
-    #         M2 = np.vstack((M2, x))
-    # f_hatList = []
-    # for i, x in enumerate(U3):
-    #     f_hatList.append((np.subtract(f_hatU3(U2[currentlyTestingId],x), mean_new_shape)).reshape(45,1))
-    # f_hat_matrix = None
-    # for i, x in enumerate(f_hatList):
-    #     if f_hat_matrix is None:
-    #         f_hat_matrix = x
-    #     else:
-    #         f_hat_matrix = np.vstack((f_hat_matrix, x))
-    # print(M2.shape)
-    # print(f_hat_matrix.shape)
-    # print(np.tensordot(core_S, U1, (0,1)).shape)
-    # EstU2 = np.matmul(np.linalg.pinv(M2),f_hat_matrix).reshape(U2.shape[0])
+    core_S_U1_00 = np.tensordot(core_S, U1, (0,0))
 
-    # print("Difference in U3", np.linalg.norm(U3 - EstU3))
-    # print("Difference in U2", np.linalg.norm(U2[currentlyTestingId] - EstU2))
+    f_hatU2 = lambda u2,U3 : np.add(np.tensordot(np.tensordot(core_S_U1, u2, (0,0)), U3, (0,1)), mean_body) #Gives matrix of size 45x94
+    f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(core_S_U1, u3, (1,0)), u2, (0,0)), mean_new_shape) #Gives vector of size U1.shape[0]
+
     print(np.min(U2))
     print(np.max(U2))
     for g, seq in enumerate(stepSeqs):
         init_U2 = np.mean(U2, axis=0)
-        u2_hat = np.random.uniform(np.min(U2), high=np.max(U2), size=U2.shape[0])#rand_U2
+        blank_U2 = np.zeros(U2.shape[0])
+        for i, x in enumerate(blank_U2):
+            blank_U2[i] = np.random.uniform(np.min(U2[:,i]), high=np.max(U2[:,i]))
+        u2_hat = blank_U2#np.random.uniform(np.min(U2), high=np.max(U2), size=U2.shape[0])#rand_U2
         init_U3 = np.mean(U3, axis=0)
-        U3_hat = np.random.uniform(np.min(U3), high=np.max(U3), size=(U3.shape[0],U3.shape[1]))#rand_U3
+        blank_U3 = np.zeros(U3.shape)
+        for i, x in enumerate(blank_U3):
+            blank_U3[:,i] = np.random.uniform(np.min(U3[:,i]), high=np.max(U3[:,i]), size=(U3.shape[0]))
+        U3_hat = blank_U3#np.random.uniform(np.min(U3), high=np.max(U3), size=(U3.shape[0],U3.shape[1]))#rand_U3
         U2_list = []
         errors = []
+        iteration = 0
         # def minimize_U3(id):
         #     opt_funU3 = lambda u3: 0.5 * np.abs(np.linalg.norm(f_hatU3(u2_hat,u3) - seq[:,id]))**2
         #     return (id,opti.minimize(opt_funU3, U3_hat[id,:], method='SLSQP', jac=rosen_der, options={'maxiter':30}).x)#, constraints = ({'type': 'eq', 'fun': lambda x: x.sum() - 1.0, 'jac': lambda x: np.ones_like(x)})).x)
-        for j in range (0,20):
+        def approximation_Error(f_hat, f_true):
+            sum_k = 0
+            for i,x in enumerate(f_hat):
+                sum_k += np.abs(np.linalg.norm(x - f_true[i]))
+            return (1/94)*sum_k
+        
+        approximation_Errors = []
+        prev_U2 = u2_hat
+        prev_U3 = U3_hat
+        start_U2 = u2_hat
+        start_U3 = U3_hat
+        for j in range (0,50):#while (approximation_Error(f_hatU2(u2_hat,U3_hat),seq)) > 10:
+            iteration += 1
             start = datetime.now()
             # if j == 0:
             #     with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
@@ -368,17 +352,21 @@ if SVM_classifier:
                 #     # print(opt_fun(U3[i,:]))
                 #     U3_hat[i] = opti.minimize(opt_funU3, U3_hat[i,:], method='Nelder-Mead', options={'maxiter':15}).x
 
-
-            
-            M3 = np.transpose(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2_hat,(0,0)))
+            #print(np.tensordot(core_S_U1, u2_hat, (0,0)).shape)
+            # print(np.matmul(U1,core_S.reshape(45,core_S.shape[1]*core_S.shape[2])).shape)
+            # print(np.tensordot(np.tensordot(core_S, U1, (0,1)), u2_hat.reshape((1,U2.shape[0])),(0,1)).shape)
+            M3 = np.tensordot(core_S_U1, u2_hat,(0,0))
             M3pinv = np.linalg.pinv(M3)
+            new_U3_list = np.zeros(U3_hat.shape)
             for i, x in enumerate(U3_hat):
-                U3_hat[i] = np.matmul(M3pinv,np.subtract(f_hatU3(u2_hat,x), mean_new_shape))
+                new_U3_list[i] = (np.matmul(np.subtract(f_hatU3(u2_hat,x), mean_new_shape),M3pinv))
+                # print("diff: ", np.linalg.norm(new_U3 - U3_hat[i]))
+            U3_hat = new_U3_list
                 
 
             M2List = []
             for i, x in enumerate(U3_hat):
-                M2List.append(np.transpose(np.tensordot(np.tensordot(core_S, U1, (0,1)),x,(1,0))))
+                M2List.append(np.transpose(np.tensordot(core_S_U1,x,(1,0))))
             M2 = None
             for i, x in enumerate(M2List):
                 if M2 is None:
@@ -395,19 +383,31 @@ if SVM_classifier:
                 else:
                     f_hat_matrix = np.vstack((f_hat_matrix, x))
             u2_hat = np.matmul(np.linalg.pinv(M2),f_hat_matrix).reshape(U2.shape[0])
+
             #u2_hat = np.mean(u2_hat, axis=0)
             end = datetime.now()
             errors.append(0.5 * np.abs(np.linalg.norm(f_hatU2(u2_hat,U3_hat) - seq))**2)
             U2_list.append(u2_hat)
+            appr_error = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
 
-            print("M2 condition", np.linalg.cond(M2))
-            print("M3 condition", np.linalg.cond(M3))
-            print("U3_hat condition", np.linalg.cond(U3_hat))
-            print("U2 condition", np.linalg.cond(U2))
-            print("U3 condition", np.linalg.cond(U3))
-            print("Test condition", np.linalg.cond(np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), U2[currentlyTestingId], (0,0)), U3, (0,1)), mean_body)))
-            print("Iteration:", j, " Time taken to estimate: ", end-start)
+            # print("M2 condition", np.linalg.cond(M2))
+            # print("M3 condition", np.linalg.cond(M3))
+            # print("U3_hat condition", np.linalg.cond(U3_hat))
+            # print("U2 condition", np.linalg.cond(U2))
+            # print("U3 condition", np.linalg.cond(U3))
+            # print("Test condition", np.linalg.cond(np.add(np.tensordot(np.tensordot(np.tensordot(core_S, U1, (0,1)), U2[currentlyTestingId], (0,0)), U3, (0,1)), mean_body)))
+            print("Iteration:", iteration, " Time taken to estimate: ", end-start)
+            # print(0.5 * (np.abs(np.linalg.norm(f_hatU2(u2_hat,U3_hat) - seq))**2))
+            #(1/T) sum_k || f_k,estimated - f_k,true ||
+            print("Approximation Error: ",appr_error)
+            approximation_Errors.append(appr_error)
+            print("Change in U2 from last iteration: ", np.linalg.norm(u2_hat - prev_U2))
+            print("Change in U3 from last iteration: ", np.linalg.norm(U3_hat - prev_U3))
+            prev_U2 = u2_hat
+            prev_U3 = U3_hat
 
+        print("Change in U2 from start: ", np.linalg.norm(u2_hat - start_U2))
+        print("Change in U3 from start: ", np.linalg.norm(U3_hat - start_U3))
         newMatrix1 = np.tensordot(core_S, U1, (0,1))
         newMatrix2 = np.tensordot(newMatrix1,u2_hat, (0,0))
         newMatrix = np.tensordot(newMatrix2,U3_hat,(0,1))
@@ -486,6 +486,9 @@ if SVM_classifier:
         fig = plt.figure()
         ax = plt.axes()
         ax.plot(errors)
+        fig2 = plt.figure()
+        ax2 = plt.axes()
+        ax2.plot(approximation_Errors)
 
         plt.show()
     # opt_fun = lambda u2,u3: f_hat(u2,u3) - 
