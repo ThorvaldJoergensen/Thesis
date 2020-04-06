@@ -190,7 +190,7 @@ def findSteps(seq):
     return FinalFirst, FinalLast
 
 # Align the given sequence list to the reference sequence using the values in the place given from id
-def multiDTW(seqs, id, refSeq):
+def multiDTW(seqs, id, refSeq, test=True):
     aligned = []
     # Append the single coordinate values of each sequence
     for i in range(0, len(seqs)):
@@ -229,8 +229,9 @@ def multiDTW(seqs, id, refSeq):
         #     smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"), True)
         stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
         # Align to adjoint reference graphs
-        res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
-        stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
+        if test:
+            res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
+            stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
     return np.array(stepSeqs)[:,1], lengthList
 
 def multiDTW_new_old(seqs, id):

@@ -2,12 +2,14 @@ import numpy as np
 import DTWHelpers
 from dtwalign import dtw
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 import pandas as pd
 import math
 from datetime import datetime
+import Plotting
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
@@ -27,7 +29,7 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
 
     walkSeqs = []
     runSeqs = []
-
+    labelsTest = np.array(labelsTest)
     for x in np.where(labelsTest[:,0]==5)[0].tolist():
         runSeqs.append(seqsTest[x])
     for x in np.where(labelsTest[:,0]==9)[0].tolist():
@@ -134,14 +136,14 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
         walk_min = math.inf
         
         for i in maxAnglesTrain:
-            if i[0] == 5:
+            if i[0] == [5]:
                 if i[1] > run_max:
                     run_max = i[1]
-            elif i[0] == 9:
+            elif i[0] == [9]:
                 if i[1] < walk_min:
                     walk_min = i[1]
         splitAngle = run_max + ((walk_min - run_max) / 2)
-    #print("Split angle calculated as: ", splitAngle)
+    # print("Split angle calculated as: ", splitAngle)
 
     
     maxAnglesTest = []
@@ -155,9 +157,9 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
 
     correct = 0
     for i in maxAnglesTest:
-        if i[1] < splitAngle and i[0] == 5:
+        if i[1] < splitAngle and i[0] == [5]:
             correct += 1
-        elif i[1] > splitAngle and i[0] == 9:
+        elif i[1] > splitAngle and i[0] == [9]:
             correct += 1
 
     # print("Correct: ", correct)
@@ -177,9 +179,25 @@ def create_Folds(seqsTrain, labelsTrain, nrSplits):
     seqFolds = []
     labelFolds = []
     splitSize = int(len(seqsTrain)/nrSplits)
+    runSeqs = []
+    runLabels = []
+    for x in np.where(labelsTrain[:,0]==5)[0].tolist():
+        runSeqs.append(seqsTrain[x])
+        runLabels.append([5])
+    walkSeqs = []
+    walkLabels = []
+    for x in np.where(labelsTrain[:,0]==9)[0].tolist():
+        walkSeqs.append(seqsTrain[x])
+        walkLabels.append([9])
+    nrRunPer = int(len(runSeqs)/nrSplits)
+    nrWalkPer = int(len(walkSeqs)/nrSplits)
     for i in range(0,nrSplits):
-        seqFolds.append(seqsTrain[splitSize*i:splitSize*(i+1)])
-        labelFolds.append(labelsTrain[splitSize*i:splitSize*(i+1)])
+        seqFolds.append(runSeqs[nrRunPer*i:nrRunPer*(i+1)])
+        seqFolds[i].extend(walkSeqs[nrWalkPer*i:nrWalkPer*(i+1)])
+        # seqFolds.append(seqsTrain[splitSize*i:splitSize*(i+1)])
+        # labelFolds.append(labelsTrain[splitSize*i:splitSize*(i+1)])
+        labelFolds.append(runLabels[nrRunPer*i:nrRunPer*(i+1)])
+        labelFolds[i].extend(walkLabels[nrWalkPer*i:nrWalkPer*(i+1)])
     return seqFolds, labelFolds
 
 def getFoldSubList(foldList, labelList, index):
@@ -397,12 +415,12 @@ def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
     encoder = preprocessing.LabelEncoder()
 
     # encoding train labels 
-    encoder.fit(Y_train)
-    Y_train = encoder.transform(Y_train)
+    encoder.fit(Y_train.ravel())
+    Y_train = encoder.transform(Y_train.ravel())
 
     # encoding test labels 
-    encoder.fit(Y_test)
-    Y_test = encoder.transform(Y_test)
+    encoder.fit(Y_test.ravel())
+    Y_test = encoder.transform(Y_test.ravel())
 
     #Total Number of Continous and Categorical features in the training set
     num_cols = pd.DataFrame(X_train)._get_numeric_data().columns
@@ -427,8 +445,8 @@ def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
                         {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
                         {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
 
-    svm_model = GridSearchCV(SVC(), params_grid, cv=5)
-    svm_model.fit(X_train_scaled, Y_train)
+    svm_model = GridSearchCV(SVC(), params_grid, cv=5, iid=False)
+    svm_model.fit(X_train_scaled, Y_train.ravel())
 
     # print('Best score for training data:', svm_model.best_score_,"\n") 
 
@@ -451,3 +469,196 @@ def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
     return final_model.score(X_test_scaled, Y_test), (end-start)
     # print("Runtime for SVM classifier: ", end - start)
 
+def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
+    WalkTest = []
+    RunTest = []
+
+    for x in np.where(label_list[:,0]==5)[0].tolist():
+        RunTest.append(seq_list[x])
+
+    for x in np.where(label_list[:,0]==9)[0].tolist():
+        WalkTest.append(seq_list[x])
+
+    def Approximation(seq_list,tensor,core_S_U1,U2,U3):    
+        stepSeqs, _ = DTWHelpers.multiDTW(seq_list, 11, DTWHelpers.getSyntheticGraph(0), test=False) 
+        print(stepSeqs.shape[0])
+        mean_new_shape = np.mean(tensor, axis=(2,1))
+        mean_new_shape.reshape(45,1)
+        mean_body = np.zeros((45,tensor.shape[2]))
+        from datetime import datetime
+        for i, x in enumerate(mean_new_shape):
+            mean_body[i] = np.resize(x, tensor.shape[2])
+
+        f_hatU2 = lambda u2,U3 : np.add(np.tensordot(np.tensordot(core_S_U1, u2, (0,0)), U3, (0,1)), mean_body) #Gives matrix of size 45x94
+        f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(core_S_U1, u3, (1,0)), u2, (0,0)), mean_new_shape) #Gives vector of size U1.shape[0]
+        
+        def approximation_Error(f_hat, f_true):
+            sum_k = 0
+            for i,x in enumerate(f_hat):
+                sum_k += np.linalg.norm(x - f_true[i])
+            return (1/94)*sum_k
+        
+        U2_Estimates = []
+        Labels = []
+
+        for g, seq in enumerate(stepSeqs):
+            print("Starting step: ", g+1, " Of: ", stepSeqs.shape[0])
+            blank_U2 = np.zeros(U2.shape[1])
+            for i, x in enumerate(blank_U2):
+                blank_U2[i] = np.random.uniform(np.min(U2[:,i]), high=np.max(U2[:,i]))
+            u2_hat = blank_U2#np.random.uniform(np.min(U2), high=np.max(U2), size=U2.shape[0])#rand_U2
+            blank_U3 = np.zeros(U3.shape)
+            for i, x in enumerate(blank_U3):
+                blank_U3[i,:] = np.random.uniform(np.min(U3[i,:]), high=np.max(U3[i,:]), size=(U3.shape[1]))
+            U3_hat = blank_U3#np.random.uniform(np.min(U3), high=np.max(U3), size=(U3.shape[0],U3.shape[1]))#rand_U3
+            U2_list = []
+            errors = []
+            iteration = 0
+            
+            approximation_Errors = []
+            prev_U2 = u2_hat
+            prev_U3 = U3_hat
+            start_U2 = u2_hat
+            start_U3 = U3_hat
+            # XXX Find early termination parameters
+            for j in range (0,50):#while (approximation_Error(f_hatU2(u2_hat,U3_hat),seq)) > 10:
+                iteration += 1
+                start = datetime.now()
+                
+                M3 = np.tensordot(core_S_U1, u2_hat, (0,0))
+                M3pinv = np.linalg.pinv(M3)
+                new_U3_list = np.zeros(U3_hat.shape)
+                for i, x in enumerate(U3_hat):
+                    new_U3_list[i] = np.matmul(np.subtract(seq[:,i], mean_new_shape), M3pinv)
+                    # print("diff: ", np.linalg.norm(new_U3 - U3_hat[i]))
+                U3_hat = new_U3_list
+                    
+
+                M2List = []
+                for i, x in enumerate(U3_hat):
+                    M2List.append(np.transpose(np.tensordot(core_S_U1,x,(1,0))))
+                    
+                M2 = None
+                for i, x in enumerate(M2List):
+                    if M2 is None:
+                        M2 = x
+                    else:
+                        M2 = np.vstack((M2, x))
+                f_hatList = []
+                for i, x in enumerate(U3_hat):
+                    f_hatList.append((np.subtract(seq[:,i], mean_new_shape)).reshape(45,1))
+                f_hat_matrix = None
+                for i, x in enumerate(f_hatList):
+                    if f_hat_matrix is None:
+                        f_hat_matrix = x
+                    else:
+                        f_hat_matrix = np.vstack((f_hat_matrix, x))
+                u2_hat = np.matmul(np.linalg.pinv(M2), f_hat_matrix).reshape(U2.shape[1])
+
+                end = datetime.now()
+                errors.append(0.5 * np.abs(np.linalg.norm(f_hatU2(u2_hat,U3_hat) - seq))**2)
+                U2_list.append(u2_hat)
+                appr_error = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
+
+                # print("Iteration:", iteration, " Time taken to estimate: ", end-start)
+                # print("Approximation Error: ",appr_error)
+                approximation_Errors.append(appr_error)
+                # print("Change in U2 from last iteration: ", np.linalg.norm(u2_hat - prev_U2))
+                # print("Change in U3 from last iteration: ", np.linalg.norm(U3_hat - prev_U3))
+                prev_U2 = u2_hat
+                prev_U3 = U3_hat
+            U2_Estimates.append(u2_hat)
+            if g == 0:
+                # print("Change in U2 from start: ", np.linalg.norm(u2_hat - start_U2))
+                # print("Change in U3 from start: ", np.linalg.norm(U3_hat - start_U3))
+                # newMatrix1 = np.tensordot(core_S, U1, (0,1))
+                newMatrix2 = np.tensordot(core_S_U1, u2_hat, (0,0))
+                newMatrix = np.tensordot(newMatrix2,U3_hat,(0,1))
+                FirstFrameModel = np.add(newMatrix, mean_body)
+
+                xs = []
+                ys = []
+                zs = []
+
+                # Split the data into x,y,z coordinates for each frame
+                for frm in range(0, FirstFrameModel.shape[1]):
+                    for j in range(0, 45, 3):
+                        xs.append(FirstFrameModel[j][frm])
+                        ys.append(FirstFrameModel[j+1][frm])
+                        zs.append(FirstFrameModel[j+2][frm])
+
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                sct, = ax.plot([], [], [], "o", markersize=2)
+
+                # Update function to be called each frame
+                def update(ifrm, xa, ya, za):
+                    # Clear all lines (except points)
+                    ax.lines = [ax.lines[0]]
+
+                    sct.set_data(xa[ifrm*15:ifrm*15+14], ya[ifrm*15:ifrm*15+14])
+                    sct.set_3d_properties(za[ifrm*15:ifrm*15+14])
+                    # For drawing the lines between points
+                    # Right leg
+                    ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+1]], [ya[ifrm*15+0], ya[ifrm*15+1]], [za[ifrm*15+0], za[ifrm*15+1]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+1], xa[ifrm*15+2]], [ya[ifrm*15+1], ya[ifrm*15+2]], [za[ifrm*15+1], za[ifrm*15+2]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+2], xa[ifrm*15+3]], [ya[ifrm*15+2], ya[ifrm*15+3]], [za[ifrm*15+2], za[ifrm*15+3]], 'steelblue', markersize=2)
+                    # Left leg
+                    ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+4]], [ya[ifrm*15+0], ya[ifrm*15+4]], [za[ifrm*15+0], za[ifrm*15+4]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+4], xa[ifrm*15+5]], [ya[ifrm*15+4], ya[ifrm*15+5]], [za[ifrm*15+4], za[ifrm*15+5]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+5], xa[ifrm*15+6]], [ya[ifrm*15+5], ya[ifrm*15+6]], [za[ifrm*15+5], za[ifrm*15+6]], 'steelblue', markersize=2)
+                    # Spine
+                    ax.plot3D([xa[ifrm*15+0], xa[ifrm*15+7]], [ya[ifrm*15+0], ya[ifrm*15+7]], [za[ifrm*15+0], za[ifrm*15+7]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+8]], [ya[ifrm*15+7], ya[ifrm*15+8]], [za[ifrm*15+7], za[ifrm*15+8]], 'steelblue', markersize=2)
+                    # Right arm
+                    ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+9]], [ya[ifrm*15+7], ya[ifrm*15+9]], [za[ifrm*15+7], za[ifrm*15+9]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+9], xa[ifrm*15+10]], [ya[ifrm*15+9], ya[ifrm*15+10]], [za[ifrm*15+9], za[ifrm*15+10]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+10], xa[ifrm*15+11]], [ya[ifrm*15+10], ya[ifrm*15+11]], [za[ifrm*15+10], za[ifrm*15+11]], 'steelblue', markersize=2)
+                    # Left arm
+                    ax.plot3D([xa[ifrm*15+7], xa[ifrm*15+12]], [ya[ifrm*15+7], ya[ifrm*15+12]], [za[ifrm*15+7], za[ifrm*15+12]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+12], xa[ifrm*15+13]], [ya[ifrm*15+12], ya[ifrm*15+13]], [za[ifrm*15+12], za[ifrm*15+13]], 'steelblue', markersize=2)
+                    ax.plot3D([xa[ifrm*15+13], xa[ifrm*15+14]], [ya[ifrm*15+13], ya[ifrm*15+14]], [za[ifrm*15+13], za[ifrm*15+14]], 'steelblue', markersize=2)
+
+                # Limit coordinates for all axes
+                ax.set_xlim(30,-30)
+                ax.set_ylim(30,-30)
+                ax.set_zlim(-30,30)
+
+                # Set labels
+                ax.set_xlabel("x")
+                ax.set_ylabel("y")
+                ax.set_zlabel("z")
+
+                # Run animation with the update function and point lists
+                ani = animation.FuncAnimation(fig, update, FirstFrameModel.shape[1], fargs=(xs,ys,zs), interval=200)
+                plt.show()
+
+            # print("Coordinates of U2: ", u2_hat.reshape(1,U2.shape[1])[0,:3])
+        return U2_Estimates
+
+    Run_Estimates = []
+    if len(RunTest) > 0:
+        Run_Estimates = Approximation(RunTest,tensor,core_S_U1,U2,U3)
+    Walk_Estimates = []
+    if len(WalkTest) > 0:
+        Walk_Estimates = Approximation(WalkTest,tensor,core_S_U1,U2,U3)
+
+    estimates  = None
+    labels = None
+    for x in Run_Estimates:
+        if estimates is None:
+           estimates = x
+           labels = [5]
+        else:
+            estimates = np.vstack((estimates,x))
+            labels = np.vstack((labels,[5]))
+    
+    for x in Walk_Estimates:
+        if estimates is None:
+           estimates = x
+           labels = [9]
+        else:
+            estimates = np.vstack((estimates,x))
+            labels = np.vstack((labels,[9]))
+    
+    return estimates,labels
