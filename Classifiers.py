@@ -632,15 +632,21 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
                 # Run animation with the update function and point lists
                 ani = animation.FuncAnimation(fig, update, FirstFrameModel.shape[1], fargs=(xs,ys,zs), interval=200)
                 plt.show()
+                # fig = plt.figure()
+                # ax = plt.axes()
+                # ax.plot(seq[11,:])
+                # plt.show()
 
             # print("Coordinates of U2: ", u2_hat.reshape(1,U2.shape[1])[0,:3])
         return U2_Estimates
 
     Run_Estimates = []
     if len(RunTest) > 0:
+        print("Estimating Running steps")
         Run_Estimates = Approximation(RunTest,tensor,core_S_U1,U2,U3)
     Walk_Estimates = []
     if len(WalkTest) > 0:
+        print("Estimating Walking Steps")
         Walk_Estimates = Approximation(WalkTest,tensor,core_S_U1,U2,U3)
 
     estimates  = None
