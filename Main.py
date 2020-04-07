@@ -194,9 +194,9 @@ Tdiff = dtensor(tensor - mean_tensor)
 crop_U2 = 25
 crop_U3 = 60
 U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
-U2 = U2[:, 0:crop_U2]
-U3 = U3[:, 0:crop_U3]
-core_S = core_S[:,0:crop_U2, 0:crop_U3]
+# U2 = U2[:, 0:crop_U2]
+# U3 = U3[:, 0:crop_U3]
+# core_S = core_S[:,0:crop_U2, 0:crop_U3]
 # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
 labelsStacked = []
 for i in range(0,len(nrPerAction)):
