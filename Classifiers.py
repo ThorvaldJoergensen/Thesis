@@ -444,9 +444,10 @@ def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
                         {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
                         {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
                         {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
-
+  
     svm_model = GridSearchCV(SVC(), params_grid, cv=5, iid=False)
     svm_model.fit(X_train_scaled, Y_train.ravel())
+
 
     # print('Best score for training data:', svm_model.best_score_,"\n") 
 
@@ -469,17 +470,17 @@ def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
     return final_model.score(X_test_scaled, Y_test), (end-start)
     # print("Runtime for SVM classifier: ", end - start)
 
-def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
+def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-1, change=-1, it = 50):
     WalkTest = []
     RunTest = []
-
+    print("Paramters: ", less_than, change, it)
     for x in np.where(label_list[:,0]==5)[0].tolist():
         RunTest.append(seq_list[x])
 
     for x in np.where(label_list[:,0]==9)[0].tolist():
         WalkTest.append(seq_list[x])
 
-    def Approximation(seq_list,tensor,core_S_U1,U2,U3):    
+    def Approximation(seq_list,tensor,core_S_U1,U2,U3, less_than, change, it):    
         stepSeqs, _ = DTWHelpers.multiDTW(seq_list, 11, DTWHelpers.getSyntheticGraph(0), test=False) 
         print(stepSeqs.shape[0])
         mean_new_shape = np.mean(tensor, axis=(2,1))
@@ -502,7 +503,7 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
         Labels = []
 
         for g, seq in enumerate(stepSeqs):
-            print("Starting step: ", g+1, " Of: ", stepSeqs.shape[0])
+            #print("Starting step: ", g+1, " Of: ", stepSeqs.shape[0])
             blank_U2 = np.zeros(U2.shape[1])
             for i, x in enumerate(blank_U2):
                 blank_U2[i] = np.random.uniform(np.min(U2[:,i]), high=np.max(U2[:,i]))
@@ -520,8 +521,18 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
             prev_U3 = U3_hat
             start_U2 = u2_hat
             start_U3 = U3_hat
+            last_approx = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
+            # print("Start Approximation error: ", approximation_Error(f_hatU2(u2_hat,U3_hat),seq))
             # XXX Find early termination parameters
-            for j in range (0,50):#while (approximation_Error(f_hatU2(u2_hat,U3_hat),seq)) > 10:
+            for j in range (0,it):#while (approximation_Error(f_hatU2(u2_hat,U3_hat),seq)) > 10:
+                if not less_than == -1:
+                    if approximation_Error(f_hatU2(u2_hat,U3_hat),seq) <= less_than:
+                        break
+                if not change == -1:
+                    if approximation_Error(f_hatU2(u2_hat,U3_hat),seq) - last_approx > change:
+                        u2_hat = prev_U2
+                        U3_hat = prev_U3
+                        break
                 iteration += 1
                 start = datetime.now()
                 
@@ -562,13 +573,16 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
 
                 # print("Iteration:", iteration, " Time taken to estimate: ", end-start)
                 # print("Approximation Error: ",appr_error)
+                # print("Approximation error of iteration ", j, ": ", appr_error)
                 approximation_Errors.append(appr_error)
                 # print("Change in U2 from last iteration: ", np.linalg.norm(u2_hat - prev_U2))
                 # print("Change in U3 from last iteration: ", np.linalg.norm(U3_hat - prev_U3))
                 prev_U2 = u2_hat
                 prev_U3 = U3_hat
+            print("Number of iterations used: ", iteration)
+            print("Final Approximation error: ",appr_error)
             U2_Estimates.append(u2_hat)
-            if g == 0:
+            if g == -1:
                 # print("Change in U2 from start: ", np.linalg.norm(u2_hat - start_U2))
                 # print("Change in U3 from start: ", np.linalg.norm(U3_hat - start_U3))
                 # newMatrix1 = np.tensordot(core_S, U1, (0,1))
@@ -642,12 +656,12 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3):
 
     Run_Estimates = []
     if len(RunTest) > 0:
-        print("Estimating Running steps")
-        Run_Estimates = Approximation(RunTest,tensor,core_S_U1,U2,U3)
+        print("Estimating Running steps ", len(RunTest))
+        Run_Estimates = Approximation(RunTest,tensor,core_S_U1,U2,U3, less_than, change, it)
     Walk_Estimates = []
     if len(WalkTest) > 0:
-        print("Estimating Walking Steps")
-        Walk_Estimates = Approximation(WalkTest,tensor,core_S_U1,U2,U3)
+        print("Estimating Walking Steps ", len(WalkTest))
+        Walk_Estimates = Approximation(WalkTest,tensor,core_S_U1,U2,U3, less_than, change, it)
 
     estimates  = None
     labels = None

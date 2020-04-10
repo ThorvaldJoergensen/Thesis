@@ -191,7 +191,7 @@ Tdiff = dtensor(tensor - mean_tensor)
 
 # Perform HOSVD on tensor to get subspaces
 # XXX Try different cropping values to see which is best
-crop_U2 = 25
+crop_U2 = 60
 crop_U3 = 60
 U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
 # U2 = U2[:, 0:crop_U2]
@@ -215,52 +215,58 @@ if SVM_classifier:
     print("Starting SVM Classifier")
     print("Starting Estimation of test set")
     core_S_U1 = np.tensordot(core_S, U1, (0,1))
+    U2_Estimate_list = []
+    Estimates_Label_list = []
+    from datetime import datetime
 
-    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3)
-    
-    newU2 = U2
-    newLabels = labelsStacked
-    for i,x in enumerate(U2_Estimates):
-        if Estimates_Labels[i] == 5:
-            newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
-            newLabels = np.vstack((newLabels, [13]))
-        elif Estimates_Labels[i] == 9:
-            newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
-            newLabels = np.vstack((newLabels, [14]))
+    start = datetime.now()
+    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3, less_than=4e-13)
+    U2_Estimate_list.append(U2_Estimates)
+    Estimates_Label_list.append(Estimates_Labels)
+    end = datetime.now()
+    print("Runtime of <4e-13 estimation: ", end-start)
 
-        
-    Plotting.plotU2(newU2, newLabels,np.append(np.append(action_names, 'RunEstimate'),'WalkEstimate'))
-    # Use below for showing errors in report
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # ax.plot(errors)
-    # fig2 = plt.figure()
-    # ax2 = plt.axes()
-    # ax2.plot(approximation_Errors)
+    U2_Estimate_list = np.array(U2_Estimate_list)
+    for j, z in enumerate(U2_Estimate_list):
+        print("Running new version: ", j+1)
+        newU2 = U2
+        newLabels = labelsStacked
+        for i,x in enumerate(z):
+            if Estimates_Label_list[j][i] == 5:
+                newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
+                newLabels = np.vstack((newLabels, [13]))
+            elif Estimates_Label_list[j][i] == 9:
+                newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
+                newLabels = np.vstack((newLabels, [14]))
 
-    plt.show()
-    #seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2, labelsStacked, test_size = 0.20)
-    print("Starting Training of SVM Model")
+            
+        Plotting.plotU2(newU2, newLabels,np.append(np.append(action_names, 'RunEstimate'),'WalkEstimate'))
+        # Use below for showing errors in report
+        # fig = plt.figure()
+        # ax = plt.axes()
+        # ax.plot(errors)
+        # fig2 = plt.figure()
+        # ax2 = plt.axes()
+        # ax2.plot(approximation_Errors)
 
-    seqFolds, labelFolds = Classifiers.create_Folds(U2,labelsStacked,5)
-    # print("First fold: ",labelFolds[0])
-    # print("Second fold: ",labelFolds[1])
-    # print("Third fold: ",labelFolds[2])
-    # print("Fourth fold: ",labelFolds[3])
-    # print("Fifth fold: ",labelFolds[4])
-    accuracies = []
-    runtimes = []
-    # XXX Get the model from each training step and continue training it
-    for i, x in enumerate(seqFolds):
-        print("Training on fold: ", i)
-        seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
-        accuracy, runtime = Classifiers.SVM_Classification_old(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
+        plt.show()
+        #seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2, labelsStacked, test_size = 0.20)
+        print("Starting Training of SVM Model")
+
+        seqFolds, labelFolds = Classifiers.create_Folds(U2,labelsStacked,5)
+        accuracies = []
+        runtimes = []
+        # XXX Get the model from each training step and continue training it
+        for i, x in enumerate(seqFolds):
+            print("Training on fold: ", i)
+            seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
+            accuracy, runtime = Classifiers.SVM_Classification_old(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
+            accuracies.append(accuracy)
+            runtimes.append(runtime)
+        #print(seqsTest.shape)
+        accuracy, runtime = Classifiers.SVM_Classification_old(U2, z, labelsStacked, Estimates_Label_list[j])
+        print("Test accuracy: ", accuracy)
         accuracies.append(accuracy)
         runtimes.append(runtime)
-    #print(seqsTest.shape)
-    accuracy, runtime = Classifiers.SVM_Classification_old(U2, U2_Estimates, labelsStacked, Estimates_Labels)
-    print("Test accuracy: ", accuracy)
-    accuracies.append(accuracy)
-    runtimes.append(runtime)
-    print("Mean SVM accuracy: ", np.mean(np.array(accuracies)))
-    print("Mean SVM runtime: ", np.mean(np.array(runtimes)))
+        print("Mean SVM accuracy: ", np.mean(np.array(accuracies)))
+        print("Mean SVM runtime: ", np.mean(np.array(runtimes)))
