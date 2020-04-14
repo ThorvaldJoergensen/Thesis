@@ -15,18 +15,20 @@ tf.disable_v2_behavior()
 
 def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     #print("Starting alignment classifier")
+    # Start timer and get synthetic graphs for each class
     start = datetime.now()
     runRef = DTWHelpers.getSyntheticGraph(5)
     walkRef = DTWHelpers.getSyntheticGraph(9)
 
     walkSeqs = []
     runSeqs = []
+    # Split the set into running and walking sequences
     labelsTest = np.array(labelsTest)
     for x in np.where(labelsTest[:,0]==5)[0].tolist():
         runSeqs.append(seqsTest[x])
     for x in np.where(labelsTest[:,0]==9)[0].tolist():
         walkSeqs.append(seqsTest[x])
-
+    # Align all sequences to both graphs
     run_runAligned, _ = DTWHelpers.multiDTW(runSeqs,11,runRef)
     run_walkAligned, _ = DTWHelpers.multiDTW(runSeqs,11,walkRef)
 
@@ -35,6 +37,7 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
 
     predictedLabels = []
 
+    # Align all sequences to both synthetic graphs and then check their distance, lowest distance is then the guessed label
     for i in range(0,len(run_runAligned)):
         res = dtw(run_runAligned[i][11,:],runRef,dist_only=True,step_pattern="typeIVc")
         runDist = res.distance
@@ -58,7 +61,8 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
             predictedLabels.append(9)
         elif walkDist == runDist:
             predictedLabels.append(-1)
-        
+    
+    # Check how many guesses were correct
     correct = 0
     for i in range(0,len(run_runAligned)):
         if predictedLabels[i] == 5:
@@ -95,6 +99,7 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     runtime = end - start
     return correct/len(predictedLabels), runtime
 
+# Function to claculate angle between two points (a,c) using a third point (b) as the meeting of a and c
 def angle(a,b,c):
     ba = a - b
     bc = c - b
@@ -110,21 +115,25 @@ def angle(a,b,c):
 def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngle=-1.0):
     #print("Starting angle classifier")
     start = datetime.now()
+    # Check if we are given a trained angle split, if we are we can test right away
     if not givenAngle == -1:
         splitAngle = givenAngle
     else:
         maxAnglesTrain = []
         splitAngle = -1.0
+        # For all sequences, get the angle for each frame between the upper and lower part of the right leg using the knee as middle point
         for j, x in enumerate(seqsTrain):
             angles = []
             seq = np.array(x)
             for i in range(0,seq.shape[1]):
                 angles.append(angle(seq[9:12, i],seq[6:9, i], seq[3:6, i]))
+            # Get the sharpest angle from the sequence
             maxAnglesTrain.append((labelsTrain[j],np.nanmin(np.array(angles))))
         maxAnglesTrain = np.array(maxAnglesTrain)
         run_max = -math.inf
         walk_min = math.inf
         
+        # For every angle, check if it is running or walking and then compare to the current max or min to see if it needs to be replaced
         for i in maxAnglesTrain:
             if i[0] == [5]:
                 if i[1] > run_max:
@@ -132,11 +141,13 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
             elif i[0] == [9]:
                 if i[1] < walk_min:
                     walk_min = i[1]
+        # Set the split to be halfway between the two outer values (running is lower than walking)
         splitAngle = run_max + ((walk_min - run_max) / 2)
     # print("Split angle calculated as: ", splitAngle)
 
     
     maxAnglesTest = []
+    # Get max angle for every sequence in the test set
     for j, x in enumerate(seqsTest):
         angles = []
         seq = np.array(x)
@@ -145,6 +156,7 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
         maxAnglesTest.append((labelsTest[j],np.nanmin(np.array(angles))))
     maxAnglesTest = np.array(maxAnglesTest)
 
+    # Test using the calculated or given splitangle, if the max angle of the sequence is lower than split then it is a running sequence, else it is walking
     correct = 0
     for i in maxAnglesTest:
         if i[1] < splitAngle and i[0] == [5]:
@@ -158,12 +170,13 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
     runtime = end - start
     return correct/maxAnglesTest.shape[0], splitAngle, runtime
 
+# Create a number of folds using a training set and the corresponding labels
 def create_Folds(seqsTrain, labelsTrain, nrSplits):
     seqFolds = []
     labelFolds = []
-    splitSize = int(len(seqsTrain)/nrSplits)
     runSeqs = []
     runLabels = []
+    # Split the running and walking sequences
     for x in np.where(labelsTrain[:,0]==5)[0].tolist():
         runSeqs.append(seqsTrain[x])
         runLabels.append([5])
@@ -172,8 +185,10 @@ def create_Folds(seqsTrain, labelsTrain, nrSplits):
     for x in np.where(labelsTrain[:,0]==9)[0].tolist():
         walkSeqs.append(seqsTrain[x])
         walkLabels.append([9])
+    # Calculate how many running and walking sequences each fold should contain
     nrRunPer = int(len(runSeqs)/nrSplits)
     nrWalkPer = int(len(walkSeqs)/nrSplits)
+    # Create each fold using the above calculated values
     for i in range(0,nrSplits):
         seqFolds.append(runSeqs[nrRunPer*i:nrRunPer*(i+1)])
         seqFolds[i].extend(walkSeqs[nrWalkPer*i:nrWalkPer*(i+1)])
@@ -181,6 +196,7 @@ def create_Folds(seqsTrain, labelsTrain, nrSplits):
         labelFolds[i].extend(walkLabels[nrWalkPer*i:nrWalkPer*(i+1)])
     return seqFolds, labelFolds
 
+# Get a fold list not containing the one at the specified index
 def getFoldSubList(foldList, labelList, index):
     seqsToTrain = []
     labelsToTrain = []
@@ -243,12 +259,6 @@ def SVM_Classification_old(seqsTrain, seqsTest, labelsTrain, labelsTest):
     pred_kernel = tf.exp(tf.multiply(gamma, pred_sq_dist))
 
     # Loss function
-    # alpha_sum = tf.reduce_sum(alpha)
-    # r_matrix = tf.matmul(y_target, tf.transpose(y_target))
-    # alpha_prod = tf.matmul(tf.transpose(alpha), alpha)
-    # double_sum = tf.reduce_sum(tf.multiply(kernel, tf.multiply(alpha_prod, r_matrix)))
-    # loss = tf.negative(tf.subtract(alpha_sum, double_sum))
-
     first_term = tf.reduce_sum(alpha)
     b_vec_cross = tf.matmul(tf.transpose(alpha), alpha)
     y_target_cross = reshape_matmul(y_target, batch_size)
@@ -256,10 +266,6 @@ def SVM_Classification_old(seqsTrain, seqsTest, labelsTrain, labelsTest):
     loss = tf.reduce_sum(tf.negative(tf.subtract(first_term, second_term)))
 
     # Accuracy function
-    # prediction_output = tf.multiply(pred_kernel, tf.multiply(y_target,alpha))
-    # prediction = tf.arg_max(prediction_output-tf.expand_dims(tf.reduce_mean(prediction_output,1), 1), 0)
-    # accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction,tf.argmax(y_target,0)), tf.float32))
-
     pred_output = tf.matmul(tf.multiply(y_target, alpha), pred_kernel)
     prediction = tf.math.argmax(pred_output-tf.expand_dims(tf.reduce_mean(pred_output,1), 1), 0)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction,tf.argmax(y_target,0)), tf.float32))
@@ -292,11 +298,6 @@ def SVM_Classification_old(seqsTrain, seqsTest, labelsTrain, labelsTest):
         acc_temp = sess.run(accuracy, feed_dict={x_data: X, y_target: Y, prediction_grid: X})
         batch_accuracy.append(acc_temp)
 
-        # For every 1000 epochs, print loss and accuracy
-        # if (i+1)%1000==0:
-        #     print("Step #{}".format(i+1))
-        #     print("Loss = ", temp_loss)
-        #     print("Accuracy = ", acc_temp)
     # After training, run on test set.
     temp_test_accuracy = sess.run(accuracy, feed_dict={x_data: seqsTest, y_target: labelsTest, prediction_grid: seqsTest})
     #print ("SVM classifier accuracy: ", temp_test_accuracy)
@@ -321,75 +322,12 @@ def SVM_Classification_old(seqsTrain, seqsTest, labelsTrain, labelsTest):
     # ax2.set_xlabel("Batch")
     # ax2.set_ylabel("Loss")
 
-    # # find boundaries for contour plot
-    # abscissa_min, abscissa_max = seqsTest[:, 0].min()-1, seqsTest[:, 0].max()+1
-    # ordinate_min, ordinate_max = seqsTest[:, 1].min()-1, seqsTest[:, 1].max()+1
-
-    # # generate mesh grid of points
-    # xx, yy = np.meshgrid(
-    #     np.linspace(abscissa_min, abscissa_max, 1000),
-    #     np.linspace(ordinate_min, ordinate_max, 1000)
-    # )
-    # grid_points = np.squeeze(np.c_[yy.ravel(), xx.ravel()])
-    # print(grid_points.shape)
-
-    # # find predictions for grid of points
-    # grid_preds = sess.run(prediction, feed_dict={
-    #     x_data: seqsTest,
-    #     y_target: labelsTest,
-    #     prediction_grid: grid_points
-    # })
-    # grid_preds = grid_preds.reshape(xx.shape)
-
-    # # plot our decision boundary
-    # plt.imshow(
-    #     grid_preds,
-    #     extent=[abscissa_min, abscissa_max, ordinate_min, ordinate_max],
-    #     origin="lower",
-    #     cmap="bwr",
-    #     aspect="auto",
-    #     alpha=0.375
-    # )
-    # plt.contour(xx, yy, grid_preds, 1, colors="black", alpha=0.5)
-
-    # # plot our points
-    # plt.scatter(class1_x[:, 0], class1_x[:, 1],
-    #     label = "Class 1 (+1)",
-    #     color = "none",
-    #     edgecolor = "red"
-    # )
-    # plt.scatter(class2_x[:, 0], class2_x[:, 1],
-    #     label = "Class 2 (-1)",
-    #     color = "none",
-    #     edgecolor = "blue"
-    # )
-
-    # # add title and legend
-    # plt.title("Decision boundary of trained SVM")
-    # plt.legend(loc="upper left", framealpha=0.25)
-
     # plt.show()
     return temp_test_accuracy, runtime
 
 
 def SVM_Classification(X_train, X_test, Y_train, Y_test):
-    #print("Starting SVM classifier")
     start = datetime.now()
-    # data = np.concatenate((U2[36:72],U2[85:169]))
-
-    # labels2 = []
-    # for i, value in enumerate(labels):
-    #     labels2.append(int(classes.index(value)))
-    # labels2 = labels#np.array(labels2)
-    # labels2 = np.where(labels2==5, 0, labels2)
-    # labels2 = np.where(labels2==9, 1, labels2)
-    # labels2 = np.ravel(labels2)
-    # X_train, X_test, Y_train, Y_test = train_test_split(data, labels2, test_size = 0.25)
-
-    # SVC with GridSearchCV
-    # Dimension of Train and Test set 
-    # print("Dimension of Train set",X_train.shape)
-    # print("Dimension of Test set",X_test.shape,"\n")
 
     # Transforming non numerical labels into numerical labels
     from sklearn import preprocessing
@@ -405,9 +343,6 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
 
     #Total Number of Continous and Categorical features in the training set
     num_cols = pd.DataFrame(X_train)._get_numeric_data().columns
-    # print("Number of numeric features:",num_cols.size)
-    #list(set(X_train.columns) - set(num_cols))
-
 
     names_of_predictors = list(pd.DataFrame(X_train).columns.values)
 
@@ -449,12 +384,12 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
     # print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
     end = datetime.now()
     return final_model.score(X_test_scaled, Y_test), (end-start)
-    # print("Runtime for SVM classifier: ", end - start)
 
 def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-1, change=-1, it = 50):
     WalkTest = []
     RunTest = []
     print("Parameters: ", less_than, change, it)
+    # Split into running and walking
     for x in np.where(label_list[:,0]==5)[0].tolist():
         RunTest.append(seq_list[x])
 
@@ -462,9 +397,10 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
         WalkTest.append(seq_list[x])
 
     def Approximation(seq_list,tensor,core_S_U1,U2,U3, less_than, change, it):    
+        # Perform step selection and alignment to the middle synthetic graph for all given sequences
         stepSeqs, _ = DTWHelpers.multiDTW(seq_list, 11, DTWHelpers.getSyntheticGraph(0), test=False) 
-        print(stepSeqs.shape[0])
         mean_new_shape = np.mean(tensor, axis=(2,1))
+        # Compute the mean body and mean sequence
         mean_new_shape.reshape(45,1)
         mean_body = np.zeros((45,tensor.shape[2]))
         from datetime import datetime
@@ -474,6 +410,7 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
         f_hatU2 = lambda u2,U3 : np.add(np.tensordot(np.tensordot(core_S_U1, u2, (0,0)), U3, (0,1)), mean_body) #Gives matrix of size 45x94
         f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(core_S_U1, u3, (1,0)), u2, (0,0)), mean_new_shape) #Gives vector of size U1.shape[0]
         
+        # Helper function to calculate the approximation error of a given sequence compared to the original sequence
         def approximation_Error(f_hat, f_true):
             sum_k = 0
             for i,x in enumerate(f_hat):
@@ -484,11 +421,12 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
         Labels = []
 
         for g, seq in enumerate(stepSeqs):
-            #print("Starting step: ", g+1, " Of: ", stepSeqs.shape[0])
+            # Calculate a randow U2 row, within the bounds of the real U2 matrix
             blank_U2 = np.zeros(U2.shape[1])
             for i, x in enumerate(blank_U2):
                 blank_U2[i] = np.random.uniform(np.min(U2[:,i]), high=np.max(U2[:,i]))
             u2_hat = blank_U2#np.random.uniform(np.min(U2), high=np.max(U2), size=U2.shape[0])#rand_U2
+            # Compute a random U3 Matrix, within the bounds of the real U3 matrix
             blank_U3 = np.zeros(U3.shape)
             for i, x in enumerate(blank_U3):
                 blank_U3[i,:] = np.random.uniform(np.min(U3[i,:]), high=np.max(U3[i,:]), size=(U3.shape[1]))
@@ -503,13 +441,13 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
             start_U2 = u2_hat
             start_U3 = U3_hat
             last_approx = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
-            # print("Start Approximation error: ", approximation_Error(f_hatU2(u2_hat,U3_hat),seq))
-            # XXX Find early termination parameters
-            for j in range (0,it):#while (approximation_Error(f_hatU2(u2_hat,U3_hat),seq)) > 10:
-                if not less_than == -1:
+            for j in range (0,it): # Run for the spefcified number of iterations
+                if not less_than == -1: # If Less_than has been set, then stop approximating the current sequence once the approximation error goes below less_than
                     if approximation_Error(f_hatU2(u2_hat,U3_hat),seq) <= less_than:
                         break
-                if not change == -1:
+                    if approximation_Error(f_hatU2(u2_hat,U3_hat),seq) - last_approx > -(0.5*less_than) and approximation_Error(f_hatU2(u2_hat,U3_hat),seq) - last_approx < (0.5*less_than) and j > 0: # If the approximation error has not changed mroe than half of less_than since last iteration and we are not in the first iteration, then break
+                        break
+                if not change == -1: # If change is set, then the approximation stops when the approximation error changes more in a single iteration than the change parameter
                     if approximation_Error(f_hatU2(u2_hat,U3_hat),seq) - last_approx > change:
                         u2_hat = prev_U2
                         U3_hat = prev_U3
@@ -517,15 +455,15 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 iteration += 1
                 start = datetime.now()
                 
+                # Estimate a u3 matrix using the current estimated u2 row (Eq. XXX)
                 M3 = np.tensordot(core_S_U1, u2_hat, (0,0))
                 M3pinv = np.linalg.pinv(M3)
                 new_U3_list = np.zeros(U3_hat.shape)
                 for i, x in enumerate(U3_hat):
                     new_U3_list[i] = np.matmul(np.subtract(seq[:,i], mean_new_shape), M3pinv)
-                    # print("diff: ", np.linalg.norm(new_U3 - U3_hat[i]))
                 U3_hat = new_U3_list
                     
-
+                # Create the M2 stack as used in Eq. XXX
                 M2List = []
                 for i, x in enumerate(U3_hat):
                     M2List.append(np.transpose(np.tensordot(core_S_U1,x,(1,0))))
@@ -537,6 +475,7 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                     else:
                         M2 = np.vstack((M2, x))
                 f_hatList = []
+                # Create the F_hat stack as used in Eq. XXX
                 for i, x in enumerate(U3_hat):
                     f_hatList.append((np.subtract(seq[:,i], mean_new_shape)).reshape(45,1))
                 f_hat_matrix = None
@@ -545,6 +484,7 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                         f_hat_matrix = x
                     else:
                         f_hat_matrix = np.vstack((f_hat_matrix, x))
+                # Estimate u2 using the above stacks as performed in Eq. XXX
                 u2_hat = np.matmul(np.linalg.pinv(M2), f_hat_matrix).reshape(U2.shape[1])
 
                 end = datetime.now()
@@ -552,21 +492,14 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 U2_list.append(u2_hat)
                 appr_error = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
 
-                # print("Iteration:", iteration, " Time taken to estimate: ", end-start)
-                # print("Approximation Error: ",appr_error)
-                # print("Approximation error of iteration ", j, ": ", appr_error)
                 approximation_Errors.append(appr_error)
-                # print("Change in U2 from last iteration: ", np.linalg.norm(u2_hat - prev_U2))
-                # print("Change in U3 from last iteration: ", np.linalg.norm(U3_hat - prev_U3))
                 prev_U2 = u2_hat
                 prev_U3 = U3_hat
             print("Number of iterations used: ", iteration)
             print("Final Approximation error: ",appr_error)
             U2_Estimates.append(u2_hat)
+            # Use the below code to animate the estimated sequence
             if g == -1:
-                # print("Change in U2 from start: ", np.linalg.norm(u2_hat - start_U2))
-                # print("Change in U3 from start: ", np.linalg.norm(U3_hat - start_U3))
-                # newMatrix1 = np.tensordot(core_S, U1, (0,1))
                 newMatrix2 = np.tensordot(core_S_U1, u2_hat, (0,0))
                 newMatrix = np.tensordot(newMatrix2,U3_hat,(0,1))
                 FirstFrameModel = np.add(newMatrix, mean_body)
@@ -632,9 +565,9 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 # ax.plot(seq[11,:])
                 # plt.show()
 
-            # print("Coordinates of U2: ", u2_hat.reshape(1,U2.shape[1])[0,:3])
         return U2_Estimates
 
+    # Approximate running and walking sequences
     Run_Estimates = []
     if len(RunTest) > 0:
         print("Estimating Running steps ", len(RunTest))
@@ -643,7 +576,7 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
     if len(WalkTest) > 0:
         print("Estimating Walking Steps ", len(WalkTest))
         Walk_Estimates = Approximation(WalkTest,tensor,core_S_U1,U2,U3, less_than, change, it)
-
+    # Create estimate and label lists
     estimates  = None
     labels = None
     for x in Run_Estimates:
