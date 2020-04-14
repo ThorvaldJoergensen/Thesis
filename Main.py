@@ -191,12 +191,13 @@ Tdiff = dtensor(tensor - mean_tensor)
 
 # Perform HOSVD on tensor to get subspaces
 # XXX Try different cropping values to see which is best
-crop_U2 = 60
-crop_U3 = 60
 U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
-# U2 = U2[:, 0:crop_U2]
-# U3 = U3[:, 0:crop_U3]
-# core_S = core_S[:,0:crop_U2, 0:crop_U3]
+crop_U2 = int(U2.shape[1]/2)
+crop_U3 = int(U3.shape[1]/2)
+U2 = U2[:, 0:crop_U2]
+U3 = U3[:, 0:crop_U3]
+print("Core_S original shape: ", core_S.shape)
+core_S = core_S[:,0:crop_U2, 0:crop_U3]
 # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
 labelsStacked = []
 for i in range(0,len(nrPerAction)):
