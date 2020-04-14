@@ -38,6 +38,8 @@ def getSyntheticGraph(id):
         startSeq = np.linspace(start,top,fullStartToTop)
         topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
         bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
+
+        # Create the sequence of values
         fullSeq = []
         fullSeq.extend(startSeq)
         fullSeq.extend(topToBottomSeq)
@@ -48,6 +50,7 @@ def getSyntheticGraph(id):
         yhat = savgol_filter(fullSeq, 51, 3)
     #If the id is walking sequence
     elif id == 9:
+        # Setup parameters for where the graph changes direction and for how long it should be
         start = -34.0
         top = -26.0
         bottom = -34.0
@@ -55,32 +58,41 @@ def getSyntheticGraph(id):
 
         fullLength = 95
 
+        # Observed lengths between the setup points
         baseLength = 95.0
         onePercent = baseLength/100
         startToTop = 49.0
         topToBottom = 30.0
         bottomToEnd = 16.0
 
+        # How much of a percentage of the graph is between each point
         percent1 = startToTop/onePercent
         percent2 = topToBottom/onePercent
         percent3 = bottomToEnd/onePercent
 
+        # Calculate how many points need to be between the setup points, based on the observed percentages
         onePercentOfFull = fullLength/100
         fullStartToTop = int(onePercentOfFull * percent1)
         fullTopToBottom = int(onePercentOfFull * percent2)
         fullBottomToEnd = int(onePercentOfFull * percent3)
 
+        # Create the points to insert between the setup points
         startSeq = np.linspace(start,top,fullStartToTop)
         topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
         bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
+
+        # Create the sequence of values
         fullSeq = []
         fullSeq.extend(startSeq)
         fullSeq.extend(topToBottomSeq)
         fullSeq.extend(bottomToEndSeq)
+        
+        # Smooth the calculated graph to remove the completely straight lines
         from scipy.signal import savgol_filter
         yhat = savgol_filter(fullSeq, 51, 3)
     #This is the adjoint sequence
     elif id == 0:
+        # Setup parameters for where the graph changes direction and for how long it should be
         start = -33.5
         top = -23.0
         bottom = -35.0
@@ -88,28 +100,36 @@ def getSyntheticGraph(id):
 
         fullLength = 95
 
+        # Observed lengths between the setup points
         baseLength = 86.5
         onePercent = baseLength/100
         startToTop = 38.5
         topToBottom = 32.0
         bottomToEnd = 16.0
 
+        # How much of a percentage of the graph is between each point
         percent1 = startToTop/onePercent
         percent2 = topToBottom/onePercent
         percent3 = bottomToEnd/onePercent
 
+        # Calculate how many points need to be between the setup points, based on the observed percentages
         onePercentOfFull = fullLength/100
         fullStartToTop = int(onePercentOfFull * percent1)
         fullTopToBottom = int(onePercentOfFull * percent2)
         fullBottomToEnd = int(onePercentOfFull * percent3)
 
+        # Create the points to insert between the setup points
         startSeq = np.linspace(start,top,fullStartToTop)
         topToBottomSeq = np.linspace(top,bottom,fullTopToBottom)
         bottomToEndSeq = np.linspace(bottom,end,fullBottomToEnd)
+
+        # Create the sequence of values
         fullSeq = []
         fullSeq.extend(startSeq)
         fullSeq.extend(topToBottomSeq)
         fullSeq.extend(bottomToEndSeq)
+        
+        # Smooth the calculated graph to remove the completely straight lines
         from scipy.signal import savgol_filter
         yhat = savgol_filter(fullSeq, 51, 3)
     return yhat
@@ -126,7 +146,9 @@ def findSteps(seq):
     while True:
         # Look through the sequence, moving the window shift spaces each iteration
         for i in range(0,seq.shape[0],shift):
+            # Extract current window from sequence
             seq_window = seq[i:(i+window_size)]
+            # Compute variance of the window
             variance = np.var(seq_window)
             if variance >= threshold*0.9:
                 pass_counter = 0
@@ -210,31 +232,26 @@ def multiDTW(seqs, id, refSeq, test=True):
             # ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
             # plt.show()
     
+    # Get adjoint synthetic graph
     adjoint_reference = getSyntheticGraph(0)
-    longestId = -1
-    maxLength = -1
     lengthList = []
-    # Find the lengths of all steps and the longest length
+    # Find the lengths of all steps
     for i, x in enumerate(stepSeqs):
         lengthList.append(len(x[1][0]))
-        if len(x[1][0]) > maxLength:
-            maxLength = len(x[1][0])
-            longestId = i
-    # print("LongestId: ", longestId)
-    # print("MaxLength: ", maxLength)
-    # # Align each step to the refernce sequence given and save the new sequence
+    # Align each step to the reference sequence given and save the new sequence
     for i, x in enumerate(stepSeqs):
+        # Align to given reference graphs
         res = dtwalign(x[1][id,:], refSeq,step_pattern="typeIVc")
-        # if i == 4:
-        #     smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"), True)
+        # Get the warping path and perform smoothing on this
         stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
+
         # Align to adjoint reference graphs
-        if test:
-            res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
-            stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
+        res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
+        # Get the warping path and perform smoothing on this
+        stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
     return np.array(stepSeqs)[:,1], lengthList
 
-#Reshape given Sequence list from number of frames * 3, 15 to 45, number of frames
+# Reshape given Sequence list from [number of frames * 3, 15] to [45, number of frames]
 def reshapeTo45(Aligned):
     RightFormFull = []
     for i, x in enumerate(Aligned):
@@ -252,14 +269,9 @@ def reshapeTo45(Aligned):
     return RightFormFull
 
 # Smoothes a given sequence using the path provided
-def smoothSeq(seq, path, debug = False):
+def smoothSeq(seq, path):
     # Setup the counter to use while looking through the path
     counter = 1
-    if debug:
-        print("path", path)
-        fig = plt.figure()
-        ax = plt.axes()
-        ax.plot(seq[11,:])
     for i in range(0, len(path), counter):
         counter = 0
         # Check the next spots if they are set to the same value as the current one, if they are add 1 to the counter.
@@ -278,12 +290,12 @@ def smoothSeq(seq, path, debug = False):
         combinationValue = 1.0
         for k in range(1, counter+1):
             combinationValue -= 1/(counter+1)
-            if i+counter+1 < len(path) - 1:
+            if i+counter+1 < len(path) - 1: # Perform a combination of the current frame and the last frame
                 try:
                     seq[:, i+k] = combinationValue*seq[:, i]+(1-combinationValue)*seq[:, i+counter+1]
                 except:
                     raise ValueError("Something went wrong in smoothing, please try again")
-            else: 
+            else: # Extend the last frame from the distance to the previous frame
                 if i == len(path) - 1:
                     break
                 distanceToPrev = seq[:, i] - seq[:, i-1]

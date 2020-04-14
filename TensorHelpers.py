@@ -4,25 +4,6 @@ from sktensor.tucker import hosvd
 import glob, os, math
 from scipy.io.matlab import loadmat
 
-
-# Compute mean shape tensor from given tensor subselection
-def createMean(tensor):
-    mean_new_shape = np.mean(tensor, axis=(2,1))
-    mean_new_shape.reshape(45,1)
-    mean_tensor = np.zeros((45,tensor.shape[1],tensor.shape[2]))
-    for i, x in enumerate(mean_new_shape):
-        mean_tensor[i] = np.resize(x, (tensor.shape[1],tensor.shape[2]))
-    return mean_tensor
-
-# Create a tensor model from a core tensor and the three U matrices
-def createTensor(core_S, U1, U2, U3):
-    firstProduct = np.tensordot(core_S, U1, (0,1))
-    secondProduct = np.tensordot(firstProduct,U2, (0,1))
-    finalProduct = np.tensordot(secondProduct,U3,(0,1))
-
-    tensor = dtensor(finalProduct)
-    return tensor
-
 # Selects a given predefined subset of sequences
 def getSequence(tensor, labels, name = 'allRunWalk'):
     allJump = tensor[18:35]
