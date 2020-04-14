@@ -18,14 +18,6 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     start = datetime.now()
     runRef = DTWHelpers.getSyntheticGraph(5)
     walkRef = DTWHelpers.getSyntheticGraph(9)
-    
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # ax.plot(runRef, label="Run reference")
-    # ax.plot(walkRef, label="Walk reference")
-    # plt.legend()
-    # plt.show()
-
 
     walkSeqs = []
     runSeqs = []
@@ -100,8 +92,6 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     # ax.plot(walkRef, c="r")
     # plt.show()
 
-    #print("Alignment Classifier Accuracy: ", correct/len(predictedLabels))
-    #print("Runtime for alignment classifier: ", end - start)
     runtime = end - start
     return correct/len(predictedLabels), runtime
 
@@ -162,18 +152,11 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
         elif i[1] > splitAngle and i[0] == [9]:
             correct += 1
 
-    # print("Correct: ", correct)
-    # print("Wrong: ", wrong)
     #print("Angle Classifier Accuracy: ", correct/maxAnglesTest.shape[0])
     end = datetime.now()
     #print("Runtime for angle classifier: ", end - start)
     runtime = end - start
     return correct/maxAnglesTest.shape[0], splitAngle, runtime
-    # print("Max run angle: ", run_max)
-    # print("Min walk angle: ", walk_min)
-
-        
-    # plot1[j][1] = angle(AlignedSeqs[i, 9:12, j],AlignedSeqs[i, 6:9, j], AlignedSeqs[i, 3:6, j]) #Leg
 
 def create_Folds(seqsTrain, labelsTrain, nrSplits):
     seqFolds = []
@@ -194,8 +177,6 @@ def create_Folds(seqsTrain, labelsTrain, nrSplits):
     for i in range(0,nrSplits):
         seqFolds.append(runSeqs[nrRunPer*i:nrRunPer*(i+1)])
         seqFolds[i].extend(walkSeqs[nrWalkPer*i:nrWalkPer*(i+1)])
-        # seqFolds.append(seqsTrain[splitSize*i:splitSize*(i+1)])
-        # labelFolds.append(labelsTrain[splitSize*i:splitSize*(i+1)])
         labelFolds.append(runLabels[nrRunPer*i:nrRunPer*(i+1)])
         labelFolds[i].extend(walkLabels[nrWalkPer*i:nrWalkPer*(i+1)])
     return seqFolds, labelFolds
@@ -211,7 +192,7 @@ def getFoldSubList(foldList, labelList, index):
     label_list = [item for sublist in labelsToTrain for item in sublist]
     return seq_list, label_list
 
-def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
+def SVM_Classification_old(seqsTrain, seqsTest, labelsTrain, labelsTest):
     import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     #print("Starting SVM classifier")
@@ -391,7 +372,7 @@ def SVM_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
     return temp_test_accuracy, runtime
 
 
-def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
+def SVM_Classification(X_train, X_test, Y_train, Y_test):
     #print("Starting SVM classifier")
     start = datetime.now()
     # data = np.concatenate((U2[36:72],U2[85:169]))

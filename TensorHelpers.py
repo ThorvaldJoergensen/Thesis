@@ -54,7 +54,6 @@ def getSequence(tensor, labels, name = 'allRunWalk'):
         labelsStacked = labels
     if name == 'oneEach':
         sequence = [boxing, golfing, idle, jump, run, shoot, sit, sweepfloor, walk, walkbalancing, walkuneven, washwindow]
-        print(len(sequence))
         labelsStacked = np.vstack((labels[0], labels[9], labels[15], labels[18], labels[36], labels[72], labels[78], labels[79], labels[85], labels[170], labels[182], labels[219]))
     if name == 'allRunWalk':
         sequence = np.concatenate((allRun,allWalk))

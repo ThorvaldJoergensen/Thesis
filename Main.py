@@ -24,33 +24,13 @@ import matplotlib
 
 import scipy.optimize as opti
 
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
-# print("Scipy optimization test")
-# outer_opt = lambda x : inner_opt(x) - 3
-# inner_opt = lambda x : opti.rosen(x)
-# x0 = 0.1 * np.arange(10)
-# print(x0)
-# res = opti.minimize(outer_opt, x0, tol=1e-6)
-# resu = opti.rosen([0.99999995, 0.99999992, 0.99999986, 0.99999976, 0.99999955, 0.99999914, 0.99999831, 0.99999665, 0.99999331, 0.99998662])
-# print(resu)
-# print(resu-3)
-
-# print(res.x)
-
-# raise ValueError()
-
 seqList, labelList, minNrFrames, medianNrFrames = TensorHelpers.loadData()
-
-
-# seqList = AlignData.spatial(seqList)
 
 # Load data from .mat file
 mat = loadmat('body/data_tensor.mat')
 
 # Extract previously saved data
 labels = np.array(mat.get('labels')) # 225 entries
-# print("Imported list: ",labels)
-# print("Our List: ",labelList)
 action_names = np.array(mat.get('action_names')) # 12 entries
 
 # Load full tensor from matlab file
@@ -60,20 +40,21 @@ angle_classifier = False
 SVM_classifier = False
 # Select which classifier to run
 if len(sys.argv) > 1:
-    if "Alignment" in sys.argv[1]:
+    if "alignment" in sys.argv[1].lower():
         print("Alignement classification requested")
         alignment_classifier = True
-    if "Angle" in sys.argv[1]:
+    if "angle" in sys.argv[1].lower():
         print("Angle classification requested")
         angle_classifier = True
-    if "SVM" in sys.argv[1]:
+    if "svm" in sys.argv[1].lower():
         print("SVM classification requested")
         SVM_classifier = True
+else:
+    print("Running all classifiers")
+    alignment_classifier = True
+    angle_classifier = True
+    SVM_classifier = True
 
-# Select a given subset of sequences
-# if len(sys.argv) > 1:
-#     subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels, sys.argv[1])
-# else:
 subSeqList, labelsStacked = TensorHelpers.getSequence(seqList, labels)
 print("Result of get Sequence shape: ", len(subSeqList), len(subSeqList[1]))
 
@@ -85,19 +66,16 @@ subSeqList = AlignData.spatial(subSeqList)
 # Reshape the data to 45, number of frames
 subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 
+# Plot synthetic graphs
 # fig = plt.figure()
 # plt.plot(DTWHelpers.getSyntheticGraph(5), c='b')
 # plt.plot(DTWHelpers.getSyntheticGraph(9), c='g')
 # plt.plot(DTWHelpers.getSyntheticGraph(0), c='r')
 # plt.show()
-# currentlyTestingId = 50
-# newSeq = subSeqList[currentlyTestingId]
-# newSeqLabel = labelsStacked[currentlyTestingId]
-# labelsStacked = np.delete(labelsStacked,0).reshape([119,1])
 
 seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
-seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain,labelsTrain,5)
+seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain, labelsTrain, 5)
 
 action_steps = []
 Lengths = []
@@ -112,7 +90,7 @@ if alignment_classifier:
         accuracy, runtime = Classifiers.alignment_Classification(seq_list, x, label_list, labelFolds[i])
         accuracies.append(accuracy)
         runtimes.append(runtime)
-    accuracy , runtime =Classifiers.alignment_Classification(seq_list, seqsTest, label_list, labelsTest)
+    accuracy , runtime = Classifiers.alignment_Classification(seq_list, seqsTest, label_list, labelsTest)
     accuracies.append(accuracy)
     runtimes.append(runtime)
     meanAccuracy = np.mean(np.array(accuracies))
@@ -135,10 +113,10 @@ if angle_classifier:
     meanAngle = np.mean(np.array(angles))
     meanAccuracy = np.mean(np.array(accuracies))
     meanRunTime = np.mean(np.array(runtimes))
-    print("Mean Angle of angle classifier",meanAngle)
-    print("Mean Runtime of angle classifier",meanRunTime)
-    print("Mean Accuracy of angle classifier",meanAccuracy)
-    accuracy, angle, runtime = Classifiers.angle_Classification([],seqsTest, [], labelsTest, meanAngle)
+    print("Mean Angle of angle classifier", meanAngle)
+    print("Mean Runtime of angle classifier", meanRunTime)
+    print("Mean Accuracy of angle classifier", meanAccuracy)
+    accuracy, angle, runtime = Classifiers.angle_Classification([], seqsTest, [], labelsTest, meanAngle)
     print("Accuracy of final test run using mean angle: ", accuracy)
     print()
     
@@ -164,19 +142,20 @@ for i, action in enumerate(action_names):
 Lengths = np.array(Lengths)
 # Find the median length of the steps
 medianLength = np.median(Lengths)-1
+
+# Plot the movement of the z coordinate of the right foot
 # fig = plt.figure()
 # ax = plt.axes()
-
-# # Plot the movement of the z coordinate of the right foot
 # for i in range(0, int(len(action_steps))):
 #     for x in range(0,int(len(action_steps[i]))):
 #         ax.plot(action_steps[i][x][11][:])
+
+
 tensorList = []
 # Get each sequence and reshape them into 45,1,median length in order to horisontally stack them into a tensor of size 45, number of steps, median length
 for i in range(0,len(action_steps)):
     for x in range(0,len(action_steps[i])):
         temp = np.array(action_steps[i][x]).reshape([45,1,int(94)])
-        #temp = np.array(action_steps[i][x]).reshape([45,1,int(medianLength)])
         if len(tensorList) == 0:
             tensorList = temp
         else:
@@ -190,10 +169,9 @@ mean_tensor = TensorHelpers.createMean(tensor)
 Tdiff = dtensor(tensor - mean_tensor)
 
 # Perform HOSVD on tensor to get subspaces
-# XXX Try different cropping values to see which is best
 U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
 crop_U2 = U2.shape[1]
-crop_U3 = 60
+crop_U3 = U3.shape[1]
 U2 = U2[:, 0:crop_U2]
 U3 = U3[:, 0:crop_U3]
 core_S = core_S[:,0:crop_U2, 0:crop_U3]
@@ -224,7 +202,7 @@ if SVM_classifier:
     U2_Estimate_list.append(U2_Estimates)
     Estimates_Label_list.append(Estimates_Labels)
     end = datetime.now()
-    print("Runtime of <6e-13 estimation: ", end-start)
+    print("Runtime of estimation: ", end-start)
 
     U2_Estimate_list = np.array(U2_Estimate_list)
     for j, z in enumerate(U2_Estimate_list):
@@ -240,7 +218,7 @@ if SVM_classifier:
                 newLabels = np.vstack((newLabels, [14]))
 
             
-        Plotting.plotU2(newU2, newLabels,np.append(np.append(action_names, 'RunEstimate'),'WalkEstimate'))
+        # Plotting.plotU2(newU2, newLabels,np.append(np.append(action_names, 'RunEstimate'),'WalkEstimate'))
         # Use below for showing errors in report
         # fig = plt.figure()
         # ax = plt.axes()
@@ -248,25 +226,12 @@ if SVM_classifier:
         # fig2 = plt.figure()
         # ax2 = plt.axes()
         # ax2.plot(approximation_Errors)
+        # plt.show()
 
-        plt.show()
-        #seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(U2, labelsStacked, test_size = 0.20)
         print("Starting Training of SVM Model")
 
         seqFolds, labelFolds = Classifiers.create_Folds(U2,labelsStacked,5)
-        accuracies = []
-        runtimes = []
-        # XXX Get the model from each training step and continue training it
-        # for i, x in enumerate(seqFolds):
-        #     print("Training on fold: ", i)
-        #     seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
-        #     accuracy, runtime = Classifiers.SVM_Classification_old(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
-        #     accuracies.append(accuracy)
-        #     runtimes.append(runtime)
-        #print(seqsTest.shape)
-        accuracy, runtime = Classifiers.SVM_Classification_old(U2, z, labelsStacked, Estimates_Label_list[j])
+
+        accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsStacked, Estimates_Label_list[j])
         print("Test accuracy: ", accuracy)
-        accuracies.append(accuracy)
-        runtimes.append(runtime)
-        print("Mean SVM accuracy: ", np.mean(np.array(accuracies)))
-        print("Mean SVM runtime: ", np.mean(np.array(runtimes)))
+        print("Estimation + SVM runtime: ", runtime + end-start)
