@@ -9,8 +9,8 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import glob, os, math, sys
-sys.path.insert(1, '../Testing')
-import Spatial
+sys.path.insert(1, '../')
+import AlignData
 
 
 os.chdir('../body/data_complete')
@@ -30,12 +30,12 @@ seq2 = np.array([seq_origin[12]+10, seq_origin[13], seq_origin[14]])
 print(seq2.shape)
 
 index_inner = [0,7,9,12]
-_, _, transform = Spatial.procrustes(np.transpose(seq[:,[0,7,9,12]]), np.transpose(seq2[:,[0,7,9,12]]), False, True)
+_, _, transform = AlignData.procrustes(np.transpose(seq[:,[0,7,9,12]]), np.transpose(seq2[:,[0,7,9,12]]), False, True)
 Z = np.matmul(np.transpose(seq2), transform['rotation']) + np.matlib.repmat(transform['translation'],15,1)
 seq2 = np.transpose(Z)
 triangle_static = seq[:,index_inner]
 triangle_deform = seq2[:,index_inner]
-_,_, transform2 = Spatial.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
+_,_, transform2 = AlignData.procrustes(np.transpose(triangle_static), np.transpose(triangle_deform), False, True)
 seq2_transformed = np.matmul(np.transpose(seq2), transform2['rotation']) + np.matlib.repmat(transform2['translation'],15,1)
 seq2 = np.transpose(seq2_transformed)
 
@@ -46,11 +46,11 @@ ys = []
 zs = []
 
 # Split the data into x,y,z coordinates for each frame
-for i in range(0, seq.shape[0], 3):
+for i in range(0, seq2.shape[0], 3):
     for j in range(0, 15):
-        xs.append(seq[i][j])
-        ys.append(seq[i+2][j])
-        zs.append(seq[i+1][j])
+        xs.append(seq2[i][j])
+        ys.append(seq2[i+2][j])
+        zs.append(seq2[i+1][j])
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -83,7 +83,7 @@ ax.plot3D([xs[0+13], xs[0+14]], [ys[0+13], ys[0+14]], [zs[0+13], zs[0+14]], 'ste
 xs = []
 ys = []
 zs = []
-
+seq2 = np.array([seq_origin[12]+10, seq_origin[13], seq_origin[14]])
 # Split the data into x,y,z coordinates for each frame
 for i in range(0, seq2.shape[0], 3):
     for j in range(0, 15):
