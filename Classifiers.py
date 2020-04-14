@@ -473,7 +473,7 @@ def SVM_Classification_old(X_train, X_test, Y_train, Y_test):
 def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-1, change=-1, it = 50):
     WalkTest = []
     RunTest = []
-    print("Paramters: ", less_than, change, it)
+    print("Parameters: ", less_than, change, it)
     for x in np.where(label_list[:,0]==5)[0].tolist():
         RunTest.append(seq_list[x])
 

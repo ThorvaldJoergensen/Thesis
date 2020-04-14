@@ -192,11 +192,10 @@ Tdiff = dtensor(tensor - mean_tensor)
 # Perform HOSVD on tensor to get subspaces
 # XXX Try different cropping values to see which is best
 U1,U2,U3,core_S = TensorHelpers.svd(Tdiff)
-crop_U2 = int(U2.shape[1]/2)
-crop_U3 = int(U3.shape[1]/2)
+crop_U2 = U2.shape[1]
+crop_U3 = 60
 U2 = U2[:, 0:crop_U2]
 U3 = U3[:, 0:crop_U3]
-print("Core_S original shape: ", core_S.shape)
 core_S = core_S[:,0:crop_U2, 0:crop_U3]
 # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
 labelsStacked = []
@@ -221,11 +220,11 @@ if SVM_classifier:
     from datetime import datetime
 
     start = datetime.now()
-    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3, less_than=4e-13)
+    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3, less_than=6e-13)
     U2_Estimate_list.append(U2_Estimates)
     Estimates_Label_list.append(Estimates_Labels)
     end = datetime.now()
-    print("Runtime of <4e-13 estimation: ", end-start)
+    print("Runtime of <6e-13 estimation: ", end-start)
 
     U2_Estimate_list = np.array(U2_Estimate_list)
     for j, z in enumerate(U2_Estimate_list):
@@ -258,12 +257,12 @@ if SVM_classifier:
         accuracies = []
         runtimes = []
         # XXX Get the model from each training step and continue training it
-        for i, x in enumerate(seqFolds):
-            print("Training on fold: ", i)
-            seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
-            accuracy, runtime = Classifiers.SVM_Classification_old(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
-            accuracies.append(accuracy)
-            runtimes.append(runtime)
+        # for i, x in enumerate(seqFolds):
+        #     print("Training on fold: ", i)
+        #     seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
+        #     accuracy, runtime = Classifiers.SVM_Classification_old(np.array(seq_list), np.array(x), np.array(label_list), np.array(labelFolds[i]))
+        #     accuracies.append(accuracy)
+        #     runtimes.append(runtime)
         #print(seqsTest.shape)
         accuracy, runtime = Classifiers.SVM_Classification_old(U2, z, labelsStacked, Estimates_Label_list[j])
         print("Test accuracy: ", accuracy)
