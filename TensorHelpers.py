@@ -30,6 +30,7 @@ def getSequence(tensor, labels, name = 'allRunWalk'):
 
     sequence = []
     labelsStacked = []
+    # Stack selected action into a uniform shape again
     if name == 'all':
         sequence = tensor
         labelsStacked = labels
@@ -59,7 +60,6 @@ def getSequence(tensor, labels, name = 'allRunWalk'):
 
 def loadData():
     print('Loading data...')
-    # os.chdir('body/data_complete')
     x = glob.glob('body/data_complete/*/*.mat')
     seqList = []
     labelList = []
