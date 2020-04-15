@@ -388,7 +388,7 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
 def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-1, change=-1, it = 50):
     WalkTest = []
     RunTest = []
-    print("Parameters: ", less_than, change, it)
+    # print("Parameters: ", less_than, change, it)
     # Split into running and walking
     for x in np.where(label_list[:,0]==5)[0].tolist():
         RunTest.append(seq_list[x])
@@ -495,8 +495,8 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 approximation_Errors.append(appr_error)
                 prev_U2 = u2_hat
                 prev_U3 = U3_hat
-            print("Number of iterations used: ", iteration)
-            print("Final Approximation error: ",appr_error)
+            # print("Number of iterations used: ", iteration)
+            # print("Final Approximation error: ",appr_error)
             U2_Estimates.append(u2_hat)
             # Use the below code to animate the estimated sequence
             if g == -1:
@@ -570,11 +570,11 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
     # Approximate running and walking sequences
     Run_Estimates = []
     if len(RunTest) > 0:
-        print("Estimating Running steps ", len(RunTest))
+        # print("Estimating Running steps ", len(RunTest))
         Run_Estimates = Approximation(RunTest,tensor,core_S_U1,U2,U3, less_than, change, it)
     Walk_Estimates = []
     if len(WalkTest) > 0:
-        print("Estimating Walking Steps ", len(WalkTest))
+        # print("Estimating Walking Steps ", len(WalkTest))
         Walk_Estimates = Approximation(WalkTest,tensor,core_S_U1,U2,U3, less_than, change, it)
     # Create estimate and label lists
     estimates  = None

@@ -4,6 +4,15 @@ from sktensor.tucker import hosvd
 import glob, os, math
 from scipy.io.matlab import loadmat
 
+# Compute mean shape tensor from given tensor subselection
+def createMean(tensor):
+    mean_new_shape = np.mean(tensor, axis=(2,1))
+    mean_new_shape.reshape(45,1)
+    mean_tensor = np.zeros((45,tensor.shape[1],tensor.shape[2]))
+    for i, x in enumerate(mean_new_shape):
+        mean_tensor[i] = np.resize(x, (tensor.shape[1],tensor.shape[2]))
+    return mean_tensor
+
 # Selects a given predefined subset of sequences
 def getSequence(tensor, labels, name = 'allRunWalk'):
     allJump = tensor[18:35]

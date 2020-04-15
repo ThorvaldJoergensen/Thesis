@@ -140,7 +140,6 @@ if angle_classifier:
 action_steps = []
 Lengths = []
 nrPerAction = []
-# XXX Need to re write so findSteps is called seperately from multiDTW so we can get medianlength and use this length to create our refseq
 for i, action in enumerate(action_names):
     # Select all sequences belonging to the current action.
     if (len(np.where(labelsTrain[:,0]==i+1)[0]) > 0):
@@ -172,7 +171,6 @@ medianLength = np.median(Lengths)-1
 
 
 tensorList = []
-# XXX Get each sequence and reshape them into [45, 1, 94] in order to horisontally stack them into a tensor of size [45, number of steps, 94]
 for i in range(0,len(action_steps)):
     for x in range(0,len(action_steps[i])):
         temp = np.array(action_steps[i][x]).reshape([45,1,int(94)])
