@@ -77,6 +77,14 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 # plt.plot(DTWHelpers.getSyntheticGraph(0), c='r')
 # plt.show()
 
+# Plot two timeseries of different classes
+# fig = plt.figure()
+# ax = plt.axes()
+# ax.plot(subSeqList[6][11][:],c="b", label="Run")
+# ax.plot(subSeqList[63][11][:],c="r", label="Walk")
+# plt.legend()
+# plt.show()
+
 # Split data into 80% training and 20% testing
 seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
@@ -208,11 +216,15 @@ labelsStacked = np.array(labelsStacked)
 # Plotting.plotU3(U3)
 # plt.show()
 
+new_action_names = []
+for i, action in enumerate(action_names):
+    new_action_names.append(action_names[i][0][0])
+
 # SVM classifier
 if SVM_classifier:
     print()
     print("Starting SVM Classifier")
-    print("Starting Estimation of test set")
+    print("Starting estimation of test set")
     # Pre-compute core_S x U1
     core_S_U1 = np.tensordot(core_S, U1, (0,1))
     U2_Estimate_list = []
@@ -232,24 +244,25 @@ if SVM_classifier:
         newU2 = U2
         newLabels = labelsStacked
         # Create new U2 and Labels for plottingd
+        walk = True
+        run = True
         for i,x in enumerate(z):
-            if Estimates_Label_list[j][i] == 5:
+            if Estimates_Label_list[j][i] == 5 and run:
                 newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
                 newLabels = np.vstack((newLabels, [13]))
-            elif Estimates_Label_list[j][i] == 9:
+                run = False
+            elif Estimates_Label_list[j][i] == 9 and walk:
                 newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
                 newLabels = np.vstack((newLabels, [14]))
+                walk = False
 
-            
-        # Plotting.plotU2(newU2, newLabels,np.append(np.append(action_names, 'RunEstimate'),'WalkEstimate'))
+        Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
+        # Plotting.plotU2(U2, labelsStacked,new_action_names)
         # Use below for showing errors in report
         # fig = plt.figure()
         # ax = plt.axes()
         # ax.plot(errors)
-        # fig2 = plt.figure()
-        # ax2 = plt.axes()
-        # ax2.plot(approximation_Errors)
-        # plt.show()
+        plt.show()
 
         print("Starting Training of SVM Model")
         

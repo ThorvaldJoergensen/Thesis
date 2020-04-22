@@ -111,7 +111,8 @@ def plotU2(U2, labelsStacked, action_names):
     fig = plt.figure(figsize=(10,10))
     fig.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1, wspace=None, hspace=None)
     ax = fig.add_subplot(111, projection='3d')
-
+    
+    ax.grid(False)
     # Create colormap with the amount of actions from jet preset
     jet = cm.get_cmap('jet',action_names.shape[0]) 
 
@@ -128,7 +129,7 @@ def plotU2(U2, labelsStacked, action_names):
                 markertype = 'd'
             
             # Plot the points with the color and label based on action
-            ax.scatter(U2[labelsStacked[:,0]==i+1,0], U2[labelsStacked[:,0]==i+1,1], U2[labelsStacked[:,0]==i+1,2], marker=markertype, s=10, color=jet(i), label=action[0][0])   
+            ax.scatter(U2[labelsStacked[:,0]==i+1,0], U2[labelsStacked[:,0]==i+1,1], U2[labelsStacked[:,0]==i+1,2], marker=markertype, s=10, color=jet(i), label=action)   
             actionsPlotted += 1
     # Set view angle
     ax.view_init(90, -90)
