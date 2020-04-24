@@ -243,9 +243,7 @@ if SVM_classifier:
     for j, z in enumerate(U2_Estimate_list):
         newU2 = U2
         newLabels = labelsStacked
-        # Create new U2 and Labels for plottingd
-        walk = True
-        run = True
+        # Create new U2 and Labels for plotting
         for i,x in enumerate(z):
             if Estimates_Label_list[j][i] == 5:
                 newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
