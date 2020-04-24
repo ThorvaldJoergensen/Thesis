@@ -232,7 +232,7 @@ if SVM_classifier:
 
     start = datetime.now()
     # Compute U2 and label estimates
-    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3, less_than=6e-13)
+    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3)
     U2_Estimate_list.append(U2_Estimates)
     Estimates_Label_list.append(Estimates_Labels)
     end = datetime.now()
@@ -247,22 +247,20 @@ if SVM_classifier:
         walk = True
         run = True
         for i,x in enumerate(z):
-            if Estimates_Label_list[j][i] == 5 and run:
+            if Estimates_Label_list[j][i] == 5:
                 newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
                 newLabels = np.vstack((newLabels, [13]))
-                run = False
-            elif Estimates_Label_list[j][i] == 9 and walk:
+            elif Estimates_Label_list[j][i] == 9:
                 newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
                 newLabels = np.vstack((newLabels, [14]))
-                walk = False
 
-        Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
+        # Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
         # Plotting.plotU2(U2, labelsStacked,new_action_names)
         # Use below for showing errors in report
         # fig = plt.figure()
         # ax = plt.axes()
         # ax.plot(errors)
-        plt.show()
+        # plt.show()
 
         print("Starting Training of SVM Model")
         
