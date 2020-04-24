@@ -408,7 +408,7 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
             mean_body[i] = np.resize(x, tensor.shape[2])
 
         f_hatU2 = lambda u2,U3 : np.add(np.tensordot(np.tensordot(core_S_U1, u2, (0,0)), U3, (0,1)), mean_body) #Gives matrix of size 45x94
-        f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(core_S_U1, u3, (1,0), u2, (0,0))), mean_new_shape) #Gives vector of size U1.shape[0]
+        f_hatU3 = lambda u2,u3 : np.add(np.tensordot(np.tensordot(core_S_U1, u3, (1,0)), u2, (0,0)), mean_new_shape) #Gives vector of size U1.shape[0]
         
         # Helper function to calculate the approximation error of a given sequence compared to the original sequence
         def approximation_Error(f_hat, f_true):
@@ -496,11 +496,11 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 prev_U2 = u2_hat
                 prev_U3 = U3_hat
                 
-            # fig = plt.figure()
-            # ax = plt.axes()
-            # ax.plot(errors)
-            # ax.plot(approximation_Errors)
-            # plt.show()
+            fig = plt.figure()
+            ax = plt.axes()
+            ax.plot(errors)
+            ax.plot(approximation_Errors)
+            plt.show()
             # print("Number of iterations used: ", iteration)
             # print("Final Approximation error: ",appr_error)
             U2_Estimates.append(u2_hat)
