@@ -77,11 +77,19 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 # plt.plot(DTWHelpers.getSyntheticGraph(0), c='r')
 # plt.show()
 
+# Plot two timeseries of different classes
+# fig = plt.figure()
+# ax = plt.axes()
+# ax.plot(subSeqList[6][11][:],c="b", label="Run")
+# ax.plot(subSeqList[63][11][:],c="r", label="Walk")
+# plt.legend()
+# plt.show()
+
 angle_accuracy = []
 alignment_accuracy = []
 svm_accuracy = []
 
-for u in range(0,10):
+for u in range (0,10):
     # Split data into 80% training and 20% testing
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
@@ -143,7 +151,7 @@ for u in range(0,10):
         print("Mean Accuracy of angle classifier", meanAccuracy)
         print()
         angle_accuracy.append(accuracy)
-        
+            
     action_steps = []
     Lengths = []
     nrPerAction = []
@@ -203,23 +211,26 @@ for u in range(0,10):
     U3 = U3[:, 0:crop_U3]
     core_S = core_S[:,0:crop_U2, 0:crop_U3]
     # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
-    labelsStacked2 = []
+    labelsSVM = []
     for i in range(0,len(nrPerAction)):
         for x in range(0,nrPerAction[i][1]):
-            labelsStacked2.append([nrPerAction[i][0]])
-    labelsStacked2 = np.array(labelsStacked2)
+            labelsSVM.append([nrPerAction[i][0]])
+    labelsSVM = np.array(labelsSVM)
 
     # Plot the new U matrices
     # Plotting.plotU1(U1)
-    # Plotting.plotU2(U2, labelsStacked2, action_names)
+    # Plotting.plotU2(U2, labelsSVM, action_names)
     # Plotting.plotU3(U3)
     # plt.show()
+    new_action_names = []
+    for i, action in enumerate(action_names):
+        new_action_names.append(action_names[i][0][0])
 
     # SVM classifier
     if SVM_classifier:
         print()
         print("Starting SVM Classifier")
-        print("Starting Estimation of test set")
+        print("Starting estimation of test set")
         # Pre-compute core_S x U1
         core_S_U1 = np.tensordot(core_S, U1, (0,1))
         U2_Estimate_list = []
@@ -227,7 +238,7 @@ for u in range(0,10):
 
         start = datetime.now()
         # Compute U2 and label estimates
-        U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3, less_than=6e-13)
+        U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3,less_than=6e-13)
         U2_Estimate_list.append(U2_Estimates)
         Estimates_Label_list.append(Estimates_Labels)
         end = datetime.now()
@@ -237,8 +248,8 @@ for u in range(0,10):
         # Iterate through estimates 
         for j, z in enumerate(U2_Estimate_list):
             newU2 = U2
-            newLabels = labelsStacked2
-            # Create new U2 and Labels for plottingd
+            newLabels = labelsSVM
+            # Create new U2 and Labels for plotting
             for i,x in enumerate(z):
                 if Estimates_Label_list[j][i] == 5:
                     newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
@@ -247,25 +258,21 @@ for u in range(0,10):
                     newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
                     newLabels = np.vstack((newLabels, [14]))
 
-                
-            # Plotting.plotU2(newU2, newLabels,np.append(np.append(action_names, 'RunEstimate'),'WalkEstimate'))
+            # Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
+            # Plotting.plotU2(U2, labelsSVM,new_action_names)
             # Use below for showing errors in report
             # fig = plt.figure()
             # ax = plt.axes()
             # ax.plot(errors)
-            # fig2 = plt.figure()
-            # ax2 = plt.axes()
-            # ax2.plot(approximation_Errors)
             # plt.show()
 
             print("Starting Training of SVM Model")
             
             # Run the SVM classifier on the estimated test set
-            accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsStacked2, Estimates_Label_list[j])
+            accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsSVM, Estimates_Label_list[j])
             print("Test accuracy: ", accuracy)
             print("Estimation + SVM runtime: ", runtime + end-start)
             svm_accuracy.append(accuracy)
-
 
 fig = plt.figure()
 plt.plot(angle_accuracy, label='Angle Accuracy per iteration', c='b')

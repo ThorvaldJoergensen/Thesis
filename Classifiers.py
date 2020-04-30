@@ -495,6 +495,12 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 approximation_Errors.append(appr_error)
                 prev_U2 = u2_hat
                 prev_U3 = U3_hat
+                
+            # fig = plt.figure()
+            # ax = plt.axes()
+            # ax.plot(errors)
+            # ax.plot(approximation_Errors)
+            # plt.show()
             # print("Number of iterations used: ", iteration)
             # print("Final Approximation error: ",appr_error)
             U2_Estimates.append(u2_hat)
