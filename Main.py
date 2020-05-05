@@ -203,6 +203,7 @@ crop_U3 = U3.shape[1]
 U2 = U2[:, 0:crop_U2]
 U3 = U3[:, 0:crop_U3]
 core_S = core_S[:,0:crop_U2, 0:crop_U3]
+Classifiers.U2_approximation([subSeqList[18]],np.array([labelsStacked[18]]),tensor, np.tensordot(core_S, U1, (0,1)), U2, U3, less_than=6e-13)
 # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
 labelsStacked = []
 for i in range(0,len(nrPerAction)):
@@ -232,7 +233,7 @@ if SVM_classifier:
 
     start = datetime.now()
     # Compute U2 and label estimates
-    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3)
+    U2_Estimates, Estimates_Labels = Classifiers.U2_approximation(seqsTest,labelsTest,tensor, core_S_U1, U2, U3, less_than=6e-13)
     U2_Estimate_list.append(U2_Estimates)
     Estimates_Label_list.append(Estimates_Labels)
     end = datetime.now()
