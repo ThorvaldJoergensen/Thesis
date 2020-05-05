@@ -85,25 +85,34 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 # plt.legend()
 # plt.show()
 
-# Split data into 80% training and 20% testing
-seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
+angle_accuracy = []
+alignment_accuracy = []
+svm_accuracy = []
 
-# Create 5 folds from the training data
-seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain, labelsTrain, 5)
+for u in range (0,10):
+    # Split data into 80% training and 20% testing
+    seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
-# Alignment classifier
-if alignment_classifier:
-    print()
-    print("Starting Alignment Classifier")
-    accuracies = []
-    runtimes = []
-    # Iterate through the 5 folds
-    for i,x in enumerate(seqFolds):
-        # Get the sequences and labels from the fold
-        seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
-        # Run the alignment classifier
-        accuracy, runtime = Classifiers.alignment_Classification(seq_list, x, label_list, labelFolds[i])
-        # Save accuracy and runtime
+    # Create 5 folds from the training data
+    seqFolds, labelFolds = Classifiers.create_Folds(seqsTrain, labelsTrain, 5)
+
+    # Alignment classifier
+    if alignment_classifier:
+        print()
+        print("Starting Alignment Classifier")
+        accuracies = []
+        runtimes = []
+        # Iterate through the 5 folds
+        for i,x in enumerate(seqFolds):
+            # Get the sequences and labels from the fold
+            seq_list, label_list = Classifiers.getFoldSubList(seqFolds, labelFolds, i)
+            # Run the alignment classifier
+            accuracy, runtime = Classifiers.alignment_Classification(seq_list, x, label_list, labelFolds[i])
+            # Save accuracy and runtime
+            accuracies.append(accuracy)
+            runtimes.append(runtime)
+        # Run the alignment classifier on the test set
+        accuracy , runtime = Classifiers.alignment_Classification(seq_list, seqsTest, label_list, labelsTest)
         accuracies.append(accuracy)
         runtimes.append(runtime)
     # Run the alignment classifier on the test set
