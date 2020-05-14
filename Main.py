@@ -208,16 +208,16 @@ for u in range (0,1):
     U2 = U2[:, 0:crop_U2]
     U3 = U3[:, 0:crop_U3]
     core_S = core_S[:,0:crop_U2, 0:crop_U3]
-    # Create a new labellist that looks like the old one from the matlab file, but for the steps instead of for the full sequences
-    labelsStacked_temp = []
+    # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
+    labelsStacked2 = []
     for i in range(0,len(nrPerAction)):
         for x in range(0,nrPerAction[i][1]):
-            labelsStacked_temp.append([nrPerAction[i][0]])
-    labelsStacked_temp = np.array(labelsStacked_temp)
+            labelsStacked2.append([nrPerAction[i][0]])
+    labelsStacked2 = np.array(labelsStacked2)
 
     # Plot the new U matrices
     # Plotting.plotU1(U1)
-    # Plotting.plotU2(U2, labelsStacked, action_names)
+    # Plotting.plotU2(U2, labelsStacked2, action_names)
     # Plotting.plotU3(U3)
     # plt.show()
 
@@ -247,7 +247,7 @@ for u in range (0,1):
         # Iterate through estimates 
         for j, z in enumerate(U2_Estimate_list):
             newU2 = U2
-            newLabels = labelsStacked_temp
+            newLabels = labelsStacked2
             # Create new U2 and Labels for plotting
             for i,x in enumerate(z):
                 if Estimates_Label_list[j][i] == 5:
@@ -258,7 +258,7 @@ for u in range (0,1):
                     newLabels = np.vstack((newLabels, [14]))
 
             # Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
-            # Plotting.plotU2(U2, labelsStacked,new_action_names)
+            # Plotting.plotU2(U2, labelsStacked2,new_action_names)
             # Use below for showing errors in report
             # fig = plt.figure()
             # ax = plt.axes()
@@ -268,6 +268,6 @@ for u in range (0,1):
             print("Starting Training of SVM Model")
             
             # Run the SVM classifier on the estimated test set
-            accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsStacked_temp, Estimates_Label_list[j])
+            accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsStacked2, Estimates_Label_list[j])
             print("Test accuracy: ", accuracy)
             print("Estimation + SVM runtime: ", runtime + end-start)
