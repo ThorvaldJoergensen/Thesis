@@ -341,19 +341,13 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
     encoder.fit(Y_test.ravel())
     Y_test = encoder.transform(Y_test.ravel())
 
-    #Total Number of Continous and Categorical features in the training set
-    num_cols = pd.DataFrame(X_train)._get_numeric_data().columns
-
-    names_of_predictors = list(pd.DataFrame(X_train).columns.values)
-
     # Scaling the Train and Test feature set 
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(pd.DataFrame(X_test))
 
-    from sklearn.model_selection import cross_val_score, GridSearchCV
-    from sklearn.metrics import classification_report, confusion_matrix
+    from sklearn.model_selection import GridSearchCV
 
     params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
                         'C': [1, 10, 100, 1000, 10000]},
@@ -364,12 +358,10 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
     svm_model = GridSearchCV(SVC(), params_grid, cv=5, iid=False)
     svm_model.fit(X_train_scaled, Y_train.ravel())
 
-
-    # print('Best score for training data:', svm_model.best_score_,"\n") 
-
     # View the best parameters for the model found using grid search
     # print('Best C:',svm_model.best_estimator_.C,"\n") 
     # print('Best Kernel:',svm_model.best_estimator_.kernel,"\n")
+    # print('Best degree:',svm_model.best_estimator_.degree,"\n")
     # print('Best Gamma:',svm_model.best_estimator_.gamma,"\n")
 
     final_model = svm_model.best_estimator_
@@ -484,8 +476,6 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                         f_hat_matrix = x
                     else:
                         f_hat_matrix = np.vstack((f_hat_matrix, x))
-                print("M2", M2.shape)
-                print("f_hat_matrix", f_hat_matrix.shape)
                 # Estimate u2 using the above stacks as performed in Eq. XXX
                 u2_hat = np.matmul(np.linalg.pinv(M2), f_hat_matrix).reshape(U2.shape[1])
 
@@ -575,125 +565,123 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 # ax.plot(seq[11,:])
                 # plt.show()
 
-        # Testing
-        newMatrix2 = np.tensordot(core_S_U1, u2_hat, (0,0))
-        newMatrix = np.tensordot(newMatrix2,U3_hat,(0,1))
-        FirstFrameModel = np.add(newMatrix, mean_body)
+                # Testing
+                newMatrix2 = np.tensordot(core_S_U1, u2_hat, (0,0))
+                newMatrix = np.tensordot(newMatrix2,U3_hat,(0,1))
+                FirstFrameModel = np.add(newMatrix, mean_body)
 
-        xs = []
-        ys = []
-        zs = []
+                xs = []
+                ys = []
+                zs = []
 
-        # Split the data into x,y,z coordinates for each frame
-        for frm in range(0, FirstFrameModel.shape[1]):
-            for j in range(0, 45, 3):
-                xs.append(FirstFrameModel[j][frm])
-                ys.append(FirstFrameModel[j+1][frm])
-                zs.append(FirstFrameModel[j+2][frm])
+                # Split the data into x,y,z coordinates for each frame
+                for frm in range(0, FirstFrameModel.shape[1]):
+                    for j in range(0, 45, 3):
+                        xs.append(FirstFrameModel[j][frm])
+                        ys.append(FirstFrameModel[j+1][frm])
+                        zs.append(FirstFrameModel[j+2][frm])
 
-        fig = plt.figure()
-        ax = fig.add_subplot(2,1,1, projection='3d')
-        ax.set_title('Reconstructed vs original sequence')
-        ax.set_ylabel('Reconstructed')
-        sct, = ax.plot([], [], [], "o", markersize=2)
+                fig = plt.figure()
+                ax = fig.add_subplot(2,1,1, projection='3d')
+                ax.set_title('Reconstructed vs original sequence')
+                ax.set_ylabel('Reconstructed')
+                sct, = ax.plot([], [], [], "o", markersize=2)
 
-        print(len(xs))
-        from matplotlib import cm
-        jet = cm.get_cmap('jet',FirstFrameModel.shape[1]) 
-        distance = 3
-        for i in range(0, FirstFrameModel.shape[1]):
-            if i % 10 == 0:
-                ax.scatter(xs[i*15:i*15+14], [y + i * distance for y in ys[i*15:i*15+14]], zs[i*15:i*15+14], color=jet(i))          
-                # Right leg
-                ax.plot([xs[i*15+0], xs[i*15+1]], [ys[i*15+0] + i * distance , ys[i*15+1] + i * distance ], [zs[i*15+0], zs[i*15+1]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+1], xs[i*15+2]], [ys[i*15+1] + i * distance , ys[i*15+2] + i * distance ], [zs[i*15+1], zs[i*15+2]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+2], xs[i*15+3]], [ys[i*15+2] + i * distance , ys[i*15+3] + i * distance ], [zs[i*15+2], zs[i*15+3]], color=jet(i), markersize=2)
-                # Left leg
-                ax.plot([xs[i*15+0], xs[i*15+4]], [ys[i*15+0] + i * distance , ys[i*15+4] + i * distance ], [zs[i*15+0], zs[i*15+4]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+4], xs[i*15+5]], [ys[i*15+4] + i * distance , ys[i*15+5] + i * distance ], [zs[i*15+4], zs[i*15+5]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+5], xs[i*15+6]], [ys[i*15+5] + i * distance , ys[i*15+6] + i * distance ], [zs[i*15+5], zs[i*15+6]], color=jet(i), markersize=2)
-                # Spine
-                ax.plot([xs[i*15+0], xs[i*15+7]], [ys[i*15+0] + i * distance , ys[i*15+7] + i * distance ], [zs[i*15+0], zs[i*15+7]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+7], xs[i*15+8]], [ys[i*15+7] + i * distance , ys[i*15+8] + i * distance ], [zs[i*15+7], zs[i*15+8]], color=jet(i), markersize=2)
-                # Right arm
-                ax.plot([xs[i*15+7], xs[i*15+9]], [ys[i*15+7] + i * distance , ys[i*15+9] + i * distance ], [zs[i*15+7], zs[i*15+9]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+9], xs[i*15+10]], [ys[i*15+9] + i * distance , ys[i*15+10] + i * distance ], [zs[i*15+9], zs[i*15+10]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+10], xs[i*15+11]], [ys[i*15+10] + i * distance , ys[i*15+11] + i * distance ], [zs[i*15+10], zs[i*15+11]], color=jet(i), markersize=2)
-                # Left arm
-                ax.plot([xs[i*15+7], xs[i*15+12]], [ys[i*15+7] + i * distance , ys[i*15+12] + i * distance ], [zs[i*15+7], zs[i*15+12]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+12], xs[i*15+13]], [ys[i*15+12] + i * distance , ys[i*15+13] + i * distance ], [zs[i*15+12], zs[i*15+13]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+13], xs[i*15+14]], [ys[i*15+13] + i * distance , ys[i*15+14] + i * distance ], [zs[i*15+13], zs[i*15+14]], color=jet(i), markersize=2)
+                from matplotlib import cm
+                jet = cm.get_cmap('jet',FirstFrameModel.shape[1]) 
+                distance = 3
+                for i in range(0, FirstFrameModel.shape[1]):
+                    if i % 10 == 0:
+                        ax.scatter(xs[i*15:i*15+14], [y + i * distance for y in ys[i*15:i*15+14]], zs[i*15:i*15+14], color=jet(i))          
+                        # Right leg
+                        ax.plot([xs[i*15+0], xs[i*15+1]], [ys[i*15+0] + i * distance , ys[i*15+1] + i * distance ], [zs[i*15+0], zs[i*15+1]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+1], xs[i*15+2]], [ys[i*15+1] + i * distance , ys[i*15+2] + i * distance ], [zs[i*15+1], zs[i*15+2]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+2], xs[i*15+3]], [ys[i*15+2] + i * distance , ys[i*15+3] + i * distance ], [zs[i*15+2], zs[i*15+3]], color=jet(i), markersize=2)
+                        # Left leg
+                        ax.plot([xs[i*15+0], xs[i*15+4]], [ys[i*15+0] + i * distance , ys[i*15+4] + i * distance ], [zs[i*15+0], zs[i*15+4]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+4], xs[i*15+5]], [ys[i*15+4] + i * distance , ys[i*15+5] + i * distance ], [zs[i*15+4], zs[i*15+5]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+5], xs[i*15+6]], [ys[i*15+5] + i * distance , ys[i*15+6] + i * distance ], [zs[i*15+5], zs[i*15+6]], color=jet(i), markersize=2)
+                        # Spine
+                        ax.plot([xs[i*15+0], xs[i*15+7]], [ys[i*15+0] + i * distance , ys[i*15+7] + i * distance ], [zs[i*15+0], zs[i*15+7]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+7], xs[i*15+8]], [ys[i*15+7] + i * distance , ys[i*15+8] + i * distance ], [zs[i*15+7], zs[i*15+8]], color=jet(i), markersize=2)
+                        # Right arm
+                        ax.plot([xs[i*15+7], xs[i*15+9]], [ys[i*15+7] + i * distance , ys[i*15+9] + i * distance ], [zs[i*15+7], zs[i*15+9]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+9], xs[i*15+10]], [ys[i*15+9] + i * distance , ys[i*15+10] + i * distance ], [zs[i*15+9], zs[i*15+10]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+10], xs[i*15+11]], [ys[i*15+10] + i * distance , ys[i*15+11] + i * distance ], [zs[i*15+10], zs[i*15+11]], color=jet(i), markersize=2)
+                        # Left arm
+                        ax.plot([xs[i*15+7], xs[i*15+12]], [ys[i*15+7] + i * distance , ys[i*15+12] + i * distance ], [zs[i*15+7], zs[i*15+12]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+12], xs[i*15+13]], [ys[i*15+12] + i * distance , ys[i*15+13] + i * distance ], [zs[i*15+12], zs[i*15+13]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+13], xs[i*15+14]], [ys[i*15+13] + i * distance , ys[i*15+14] + i * distance ], [zs[i*15+13], zs[i*15+14]], color=jet(i), markersize=2)
 
-        # Limit coordinates for all axes
-        ax.set_xlim(40,-40)
-        ax.set_ylim(275,-20)
-        ax.set_zlim(-30,30)
+                # Limit coordinates for all axes
+                ax.set_xlim(40,-40)
+                ax.set_ylim(275,-20)
+                ax.set_zlim(-30,30)
 
-        # Set labels
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_zlabel("z")
+                # Set labels
+                ax.set_xlabel("x")
+                ax.set_ylabel("y")
+                ax.set_zlabel("z")
 
-        ax.grid(False)
-        plt.axis('off')
+                ax.grid(False)
+                plt.axis('off')
 
-        FirstFrameModel = stepSeqs[0]
+                FirstFrameModel = stepSeqs[0]
 
-        xs = []
-        ys = []
-        zs = []
+                xs = []
+                ys = []
+                zs = []
 
-        # Split the data into x,y,z coordinates for each frame
-        for frm in range(0, FirstFrameModel.shape[1]):
-            for j in range(0, 45, 3):
-                xs.append(FirstFrameModel[j][frm])
-                ys.append(FirstFrameModel[j+1][frm])
-                zs.append(FirstFrameModel[j+2][frm])
+                # Split the data into x,y,z coordinates for each frame
+                for frm in range(0, FirstFrameModel.shape[1]):
+                    for j in range(0, 45, 3):
+                        xs.append(FirstFrameModel[j][frm])
+                        ys.append(FirstFrameModel[j+1][frm])
+                        zs.append(FirstFrameModel[j+2][frm])
 
-        ax = fig.add_subplot(2,1,2, projection='3d')
-        ax.set_ylabel('Original')
-        sct, = ax.plot([], [], [], "o", markersize=2)
+                ax = fig.add_subplot(2,1,2, projection='3d')
+                ax.set_ylabel('Original')
+                sct, = ax.plot([], [], [], "o", markersize=2)
 
-        print(len(xs))
-        from matplotlib import cm
-        jet = cm.get_cmap('jet',FirstFrameModel.shape[1]) 
-        for i in range(0, FirstFrameModel.shape[1]):
-            if i % 10 == 0:
-                ax.scatter(xs[i*15:i*15+14], [y + i * distance for y in ys[i*15:i*15+14]], zs[i*15:i*15+14], color=jet(i))          
-                # Right leg
-                ax.plot([xs[i*15+0], xs[i*15+1]], [ys[i*15+0] + i * distance , ys[i*15+1] + i * distance ], [zs[i*15+0], zs[i*15+1]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+1], xs[i*15+2]], [ys[i*15+1] + i * distance , ys[i*15+2] + i * distance ], [zs[i*15+1], zs[i*15+2]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+2], xs[i*15+3]], [ys[i*15+2] + i * distance , ys[i*15+3] + i * distance ], [zs[i*15+2], zs[i*15+3]], color=jet(i), markersize=2)
-                # Left leg
-                ax.plot([xs[i*15+0], xs[i*15+4]], [ys[i*15+0] + i * distance , ys[i*15+4] + i * distance ], [zs[i*15+0], zs[i*15+4]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+4], xs[i*15+5]], [ys[i*15+4] + i * distance , ys[i*15+5] + i * distance ], [zs[i*15+4], zs[i*15+5]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+5], xs[i*15+6]], [ys[i*15+5] + i * distance , ys[i*15+6] + i * distance ], [zs[i*15+5], zs[i*15+6]], color=jet(i), markersize=2)
-                # Spine
-                ax.plot([xs[i*15+0], xs[i*15+7]], [ys[i*15+0] + i * distance , ys[i*15+7] + i * distance ], [zs[i*15+0], zs[i*15+7]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+7], xs[i*15+8]], [ys[i*15+7] + i * distance , ys[i*15+8] + i * distance ], [zs[i*15+7], zs[i*15+8]], color=jet(i), markersize=2)
-                # Right arm
-                ax.plot([xs[i*15+7], xs[i*15+9]], [ys[i*15+7] + i * distance , ys[i*15+9] + i * distance ], [zs[i*15+7], zs[i*15+9]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+9], xs[i*15+10]], [ys[i*15+9] + i * distance , ys[i*15+10] + i * distance ], [zs[i*15+9], zs[i*15+10]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+10], xs[i*15+11]], [ys[i*15+10] + i * distance , ys[i*15+11] + i * distance ], [zs[i*15+10], zs[i*15+11]], color=jet(i), markersize=2)
-                # Left arm
-                ax.plot([xs[i*15+7], xs[i*15+12]], [ys[i*15+7] + i * distance , ys[i*15+12] + i * distance ], [zs[i*15+7], zs[i*15+12]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+12], xs[i*15+13]], [ys[i*15+12] + i * distance , ys[i*15+13] + i * distance ], [zs[i*15+12], zs[i*15+13]], color=jet(i), markersize=2)
-                ax.plot([xs[i*15+13], xs[i*15+14]], [ys[i*15+13] + i * distance , ys[i*15+14] + i * distance ], [zs[i*15+13], zs[i*15+14]], color=jet(i), markersize=2)
+                from matplotlib import cm
+                jet = cm.get_cmap('jet',FirstFrameModel.shape[1]) 
+                for i in range(0, FirstFrameModel.shape[1]):
+                    if i % 10 == 0:
+                        ax.scatter(xs[i*15:i*15+14], [y + i * distance for y in ys[i*15:i*15+14]], zs[i*15:i*15+14], color=jet(i))          
+                        # Right leg
+                        ax.plot([xs[i*15+0], xs[i*15+1]], [ys[i*15+0] + i * distance , ys[i*15+1] + i * distance ], [zs[i*15+0], zs[i*15+1]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+1], xs[i*15+2]], [ys[i*15+1] + i * distance , ys[i*15+2] + i * distance ], [zs[i*15+1], zs[i*15+2]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+2], xs[i*15+3]], [ys[i*15+2] + i * distance , ys[i*15+3] + i * distance ], [zs[i*15+2], zs[i*15+3]], color=jet(i), markersize=2)
+                        # Left leg
+                        ax.plot([xs[i*15+0], xs[i*15+4]], [ys[i*15+0] + i * distance , ys[i*15+4] + i * distance ], [zs[i*15+0], zs[i*15+4]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+4], xs[i*15+5]], [ys[i*15+4] + i * distance , ys[i*15+5] + i * distance ], [zs[i*15+4], zs[i*15+5]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+5], xs[i*15+6]], [ys[i*15+5] + i * distance , ys[i*15+6] + i * distance ], [zs[i*15+5], zs[i*15+6]], color=jet(i), markersize=2)
+                        # Spine
+                        ax.plot([xs[i*15+0], xs[i*15+7]], [ys[i*15+0] + i * distance , ys[i*15+7] + i * distance ], [zs[i*15+0], zs[i*15+7]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+7], xs[i*15+8]], [ys[i*15+7] + i * distance , ys[i*15+8] + i * distance ], [zs[i*15+7], zs[i*15+8]], color=jet(i), markersize=2)
+                        # Right arm
+                        ax.plot([xs[i*15+7], xs[i*15+9]], [ys[i*15+7] + i * distance , ys[i*15+9] + i * distance ], [zs[i*15+7], zs[i*15+9]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+9], xs[i*15+10]], [ys[i*15+9] + i * distance , ys[i*15+10] + i * distance ], [zs[i*15+9], zs[i*15+10]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+10], xs[i*15+11]], [ys[i*15+10] + i * distance , ys[i*15+11] + i * distance ], [zs[i*15+10], zs[i*15+11]], color=jet(i), markersize=2)
+                        # Left arm
+                        ax.plot([xs[i*15+7], xs[i*15+12]], [ys[i*15+7] + i * distance , ys[i*15+12] + i * distance ], [zs[i*15+7], zs[i*15+12]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+12], xs[i*15+13]], [ys[i*15+12] + i * distance , ys[i*15+13] + i * distance ], [zs[i*15+12], zs[i*15+13]], color=jet(i), markersize=2)
+                        ax.plot([xs[i*15+13], xs[i*15+14]], [ys[i*15+13] + i * distance , ys[i*15+14] + i * distance ], [zs[i*15+13], zs[i*15+14]], color=jet(i), markersize=2)
 
-        # Limit coordinates for all axes
-        ax.set_xlim(40,-40)
-        ax.set_ylim(275,-20)
-        ax.set_zlim(-30,30)
+                # Limit coordinates for all axes
+                ax.set_xlim(40,-40)
+                ax.set_ylim(275,-20)
+                ax.set_zlim(-30,30)
 
-        # Set labels
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_zlabel("z")
+                # Set labels
+                ax.set_xlabel("x")
+                ax.set_ylabel("y")
+                ax.set_zlabel("z")
 
-        ax.grid(False)
-        plt.axis('off')
+                ax.grid(False)
+                plt.axis('off')
 
-        plt.show()
+                plt.show()
 
         return U2_Estimates
 

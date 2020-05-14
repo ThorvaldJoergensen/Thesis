@@ -10,20 +10,22 @@ from fastdtw import fastdtw
 from dtaidistance import dtw as dtw2
 from dtaidistance import dtw_visualisation as dtwvis
 from dtwalign import dtw as dtwalign
+import os
 
 
 from scipy.io.matlab import loadmat
 
-import Helpers
 sys.path.insert(1, '../')
 import Plotting
 sys.path.insert(1,'../Tensor')
 import AlignData
+import TensorHelpers
 # #DtaiDistance testing:
-# s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
-# s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
-# path = dtw2.warping_path(s1, s2)
-# dtwvis.plot_warping(s1, s2, path, filename="warp.png")
+s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
+s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
+path = dtw2.warping_path(s1, s2)
+dtwvis.plot_warping(s1, s2, path)
+plt.show()
 
 # #Fastdtw testing:
 # x = np.array([[1,1], [2,2], [3,3], [4,4], [5,5]])
@@ -81,7 +83,8 @@ import AlignData
 #     .plot(type="twoway",offset=-2)
 id = 11
 
-seqList, labels, minNrFrames, medianNrFrames = Helpers.loadData()
+os.chdir('../')
+seqList, labelList, minNrFrames, medianNrFrames = TensorHelpers.loadData()
 seqList = AlignData.temporalLazy(seqList, 1316)
 print(seqList.shape)
 runSeqs = seqList[36:72]
