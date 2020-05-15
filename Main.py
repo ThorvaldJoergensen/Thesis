@@ -86,10 +86,15 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 # plt.show()
 
 angle_accuracy = []
+angle_runtime = []
 alignment_accuracy = []
+alignment_runtime = []
 svm_accuracy = []
+svm_runtime = []
 
-for u in range (0,1):
+iterations = 100
+for u in range (1,iterations+1):
+    print("Starting iteration: ", u)
     # Split data into 80% training and 20% testing
     seqsTrain, seqsTest, labelsTrain, labelsTest = train_test_split(subSeqList, labelsStacked, test_size = 0.20)
 
@@ -121,6 +126,8 @@ for u in range (0,1):
         print("Accuracy of test set of alignment classifier: ", accuracy)
         print("Mean accuracy of alignment classifier: ", meanAccuracy)
         print("Mean runtime of alignment classifier: ", meanRunTime)
+        alignment_accuracy.append(accuracy)
+        alignment_runtime.append(runtime)
 
     # Angle classifier
     if angle_classifier:
@@ -149,6 +156,8 @@ for u in range (0,1):
         print("Mean Runtime of angle classifier", meanRunTime)
         print("Mean Accuracy of angle classifier", meanAccuracy)
         print()
+        angle_accuracy.append(accuracy)
+        angle_runtime.append(runtime)
         
     action_steps = []
     Lengths = []
@@ -209,21 +218,22 @@ for u in range (0,1):
     U3 = U3[:, 0:crop_U3]
     core_S = core_S[:,0:crop_U2, 0:crop_U3]
     # Create a new labellist that looks like the old one from the matlab file, but for the steps in stead of for the full sequences
-    labelsStacked2 = []
+    labelsSVM = []
     for i in range(0,len(nrPerAction)):
         for x in range(0,nrPerAction[i][1]):
-            labelsStacked2.append([nrPerAction[i][0]])
-    labelsStacked2 = np.array(labelsStacked2)
+            labelsSVM.append([nrPerAction[i][0]])
+    labelsSVM = np.array(labelsSVM)
 
     # Plot the new U matrices
     # Plotting.plotU1(U1)
-    # Plotting.plotU2(U2, labelsStacked2, action_names)
+    # Plotting.plotU2(U2, labelsSVM, action_names)
     # Plotting.plotU3(U3)
     # plt.show()
 
     new_action_names = []
     for i, action in enumerate(action_names):
         new_action_names.append(action_names[i][0][0])
+    new_action_names = np.array(new_action_names)
 
     # SVM classifier
     if SVM_classifier:
@@ -247,7 +257,7 @@ for u in range (0,1):
         # Iterate through estimates 
         for j, z in enumerate(U2_Estimate_list):
             newU2 = U2
-            newLabels = labelsStacked2
+            newLabels = labelsSVM
             # Create new U2 and Labels for plotting
             for i,x in enumerate(z):
                 if Estimates_Label_list[j][i] == 5:
@@ -258,16 +268,57 @@ for u in range (0,1):
                     newLabels = np.vstack((newLabels, [14]))
 
             # Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
-            # Plotting.plotU2(U2, labelsStacked2,new_action_names)
+            # Plotting.plotU2(U2, labelsSVM,new_action_names)
             # Use below for showing errors in report
             # fig = plt.figure()
             # ax = plt.axes()
             # ax.plot(errors)
-            # plt.show()
+            plt.show()
 
             print("Starting Training of SVM Model")
             
             # Run the SVM classifier on the estimated test set
-            accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsStacked2, Estimates_Label_list[j])
+            accuracy, runtime = Classifiers.SVM_Classification(U2, z, labelsSVM, Estimates_Label_list[j])
             print("Test accuracy: ", accuracy)
             print("Estimation + SVM runtime: ", runtime + end-start)
+            svm_accuracy.append(accuracy)
+            svm_runtime.append(runtime)
+
+fig = plt.figure()
+plt.plot(range(1,iterations+1), angle_accuracy, label='Angle Accuracy per iteration', c='b')
+plt.axhline(np.mean(np.array(angle_accuracy)), label='Mean Accuracy', c= 'r')
+plt.ylabel("Accuracy")
+plt.xlabel("Iteration")
+plt.ylim(0.5,1.02)
+plt.title("Angle classifier accuracy")
+plt.legend()
+plt.show()
+
+print("Mean Angle runtime: ", np.mean(np.array(angle_runtime)))
+print("Mean Angle accuracy: ", np.mean(np.array(angle_accuracy)))
+
+fig = plt.figure()
+plt.plot(range(1,iterations+1), alignment_accuracy, label='Alignment Accuracy per iteration', c='b')
+plt.axhline(np.mean(np.array(alignment_accuracy)), label='Mean Accuracy', c= 'r')
+plt.ylabel("Accuracy")
+plt.xlabel("Iteration")
+plt.ylim(0.5,1.02)
+plt.title("Alignment classifier accuracy")
+plt.legend()
+plt.show()
+
+print("Mean Alignment runtime: ", np.mean(np.array(alignment_runtime)))
+print("Mean Alignment accuracy: ", np.mean(np.array(alignment_accuracy)))
+
+fig = plt.figure()
+plt.plot(range(1,iterations+1), svm_accuracy, label='SVM Accuracy per iteration', c='b')
+plt.axhline(np.mean(np.array(svm_accuracy)), label='Mean Accuracy', c= 'r')
+plt.ylabel("Accuracy")
+plt.xlabel("Iteration")
+plt.ylim(0.5,1.02)
+plt.title("SVM classifier accuracy")
+plt.legend()
+plt.show()
+
+print("Mean SVM runtime: ", np.mean(np.array(svm_runtime)))
+print("Mean SVM accuracy: ", np.mean(np.array(svm_accuracy)))

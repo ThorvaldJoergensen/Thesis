@@ -349,8 +349,7 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
 
     from sklearn.model_selection import GridSearchCV
 
-    params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                        'C': [1, 10, 100, 1000, 10000]},
+    params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000, 10000]},
                         {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
                         {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
                         {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]

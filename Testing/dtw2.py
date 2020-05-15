@@ -88,7 +88,7 @@ seqList, labelList, minNrFrames, medianNrFrames = TensorHelpers.loadData()
 seqList = AlignData.temporalLazy(seqList, 1316)
 print(seqList.shape)
 runSeqs = seqList[36:72]
-walkSeqs = seqList[85:169]
+walkSeqs = seqList[85:170]
 maxRunFrames = 0
 for i in runSeqs:
     if int(i.shape[0]/3) > maxRunFrames:

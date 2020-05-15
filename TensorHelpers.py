@@ -17,7 +17,7 @@ def createMean(tensor):
 def getSequence(tensor, labels, name = 'allRunWalk'):
     allJump = tensor[18:35]
     allRun = tensor[36:72]
-    allWalk = tensor[85:169]
+    allWalk = tensor[85:170]
     fiveRun = tensor[36:41]
     fiveWalk = tensor[85:90]
     allWalkbalancing = tensor[170:181]
@@ -48,7 +48,7 @@ def getSequence(tensor, labels, name = 'allRunWalk'):
         labelsStacked = np.vstack((labels[0], labels[9], labels[15], labels[18], labels[36], labels[72], labels[78], labels[79], labels[85], labels[170], labels[182], labels[219]))
     if name == 'allRunWalk':
         sequence = np.concatenate((allRun,allWalk))
-        labelsStacked = np.vstack((labels[36:72], labels[85:169]))
+        labelsStacked = np.vstack((labels[36:72], labels[85:170]))
     if name == 'fiveRunWalk':
         sequence = np.concatenate((fiveRun, fiveWalk))
         labelsStacked = np.vstack((labels[36:41], labels[85:90]))
@@ -60,7 +60,7 @@ def getSequence(tensor, labels, name = 'allRunWalk'):
         labelsStacked = labels[85:169]
     if name == 'allMoving':
         sequence = np.concatenate((allJump, allRun, allWalk, allWalkbalancing, allWalkuneven))
-        labelsStacked = np.vstack((labels[18:35], labels[36:72], labels[85:169], labels[170:181], labels[182:218]))  
+        labelsStacked = np.vstack((labels[18:35], labels[36:72], labels[85:170], labels[170:181], labels[182:218]))  
     if name == 'fiveBalancedUneven':
         sequence = np.concatenate((fiveBalancing, fiveUneven))
         labelsStacked = np.vstack((labels[170:175], labels[182:187]))
