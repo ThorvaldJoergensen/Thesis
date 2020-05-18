@@ -6,13 +6,15 @@ from dtaidistance import dtw as dtw2
 from dtaidistance import dtw_visualisation as dtwvis
 
 
-x1 = range(0, 14)
+x1 = range(0, 140)
 y1 = np.array([1,1,2.5,2.5,3.5,4.5,3.5,3.5,4.5,3.5,3.5,3.5,5.5,4.5])
-x2 = range(0, 14)
+y1 = np.repeat(y1, 10)
+x2 = range(0, 140)
 y2 = np.array([1,2,3,3,4,5,4,4,5,4,4,4,6,5])
+y2 = np.repeat(y2, 10)
 from scipy.signal import savgol_filter
-y1 = savgol_filter(y1, 13, 3)
-y2 = savgol_filter(y2, 13, 3)
+y1 = savgol_filter(y1, 139, 3)
+y2 = savgol_filter(y2, 139, 3)
 
 
 # x1 = range(0, 7)
@@ -46,17 +48,17 @@ dtwvis.plot_warping(y2, y1, best_path)
 #     y22[j][0] = j
 #     y22[j][1] = y2[j]-1
 #Mindre sequence skal være query, altså først i metode kaldet
-res = dtwalign(y1, y2,window_type="sakoechiba",window_size=3)
+res = dtwalign(y1, y2, window_type="sakoechiba", window_size=30)
 print(res.path)
 
 y22path = res.path[:,0]
 y12path = res.path[:,1]
-# y12path = res.get_warping_path(target="reference")
+path = res.get_warping_path(target="query")
 
 fig = plt.figure()
 ax = plt.axes()
-y1 = savgol_filter(y1[y22path], 13, 3)
-y2 = savgol_filter(y2[y12path], 13, 3)
+y1 = savgol_filter(y1[path], 139, 3)
+# y2 = savgol_filter(y2[y12path], 139, 3)
 ax.plot(y1,c="b")
 ax.plot(y2, c="r")
 
