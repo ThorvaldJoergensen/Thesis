@@ -72,9 +72,10 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 
 # Plot synthetic graphs
 # fig = plt.figure()
-# plt.plot(DTWHelpers.getSyntheticGraph(5), c='b')
-# plt.plot(DTWHelpers.getSyntheticGraph(9), c='g')
-# plt.plot(DTWHelpers.getSyntheticGraph(0), c='r')
+# plt.plot(DTWHelpers.getSyntheticGraph(5), c='b', label='Synthetic run')
+# plt.plot(DTWHelpers.getSyntheticGraph(9), c='g', label='Synthetic walk')
+# plt.plot(DTWHelpers.getSyntheticGraph(0), c='r', label='Synthetic mixture')
+# plt.legend()
 # plt.show()
 
 # Plot two timeseries of different classes
@@ -84,6 +85,29 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 # ax.plot(subSeqList[63][11][:],c="r", label="Walk")
 # plt.legend()
 # plt.show()
+
+finalFirst, finalLast = DTWHelpers.findSteps(subSeqList[63][11][:])
+finalFirstY = []
+finalLastY = []
+for x in finalFirst:
+    finalFirstY = subSeqList[63][11][x]
+for x in finalLast:
+    finalLastY = subSeqList[63][11][x]
+fig = plt.figure()
+ax = plt.axes()
+ax.plot(subSeqList[63][11][:],c="b", label="Walk")
+for i, x in enumerate(finalFirst):
+    if i == 0:
+        ax.axvline(x, c="g", label='Start of step')
+    else:
+        ax.axvline(x, c="g")
+for i, x in enumerate(finalLast):
+    if i == 0:
+        ax.axvline(x, c="r", label='End of step')
+    else:
+        ax.axvline(x, c="r")
+plt.legend(loc='upper right')
+plt.show()
 
 angle_accuracy = []
 angle_runtime = []
