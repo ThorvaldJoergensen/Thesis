@@ -86,28 +86,28 @@ subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 # plt.legend()
 # plt.show()
 
-finalFirst, finalLast = DTWHelpers.findSteps(subSeqList[63][11][:])
-finalFirstY = []
-finalLastY = []
-for x in finalFirst:
-    finalFirstY = subSeqList[63][11][x]
-for x in finalLast:
-    finalLastY = subSeqList[63][11][x]
-fig = plt.figure()
-ax = plt.axes()
-ax.plot(subSeqList[63][11][:],c="b", label="Walk")
-for i, x in enumerate(finalFirst):
-    if i == 0:
-        ax.axvline(x, c="g", label='Start of step')
-    else:
-        ax.axvline(x, c="g")
-for i, x in enumerate(finalLast):
-    if i == 0:
-        ax.axvline(x, c="r", label='End of step')
-    else:
-        ax.axvline(x, c="r")
-plt.legend(loc='upper right')
-plt.show()
+# finalFirst, finalLast = DTWHelpers.findSteps(subSeqList[63][11][:])
+# finalFirstY = []
+# finalLastY = []
+# for x in finalFirst:
+#     finalFirstY = subSeqList[63][11][x]
+# for x in finalLast:
+#     finalLastY = subSeqList[63][11][x]
+# fig = plt.figure()
+# ax = plt.axes()
+# ax.plot(subSeqList[63][11][:],c="b", label="Walk")
+# for i, x in enumerate(finalFirst):
+#     if i == 0:
+#         ax.axvline(x, c="g", label='Start of step')
+#     else:
+#         ax.axvline(x, c="g")
+# for i, x in enumerate(finalLast):
+#     if i == 0:
+#         ax.axvline(x, c="r", label='End of step')
+#     else:
+#         ax.axvline(x, c="r")
+# plt.legend(loc='upper right')
+# plt.show()
 
 angle_accuracy = []
 angle_runtime = []
@@ -197,7 +197,7 @@ for u in range (1,iterations+1):
             for x in np.where(labelsTrain[:,0]==i+1)[0].tolist():
                 steps.append(seqsTrain[x])
             # Find the steps in each sequence and align them to the reference graph
-            steps, lengthList = DTWHelpers.multiDTW(steps,11, refSeq)
+            steps, lengthList = DTWHelpers.multiDTW(steps,11, refSeq, False)
             # Put the lengths of all steps into a list
             Lengths.extend(lengthList)
             # Create a list containing the id of each action and how many steps belong to that action ([5,41],[9,156] with running and walking for example)

@@ -246,9 +246,10 @@ def multiDTW(seqs, id, refSeq, test=True):
         stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
 
         # Align to adjoint reference graphs
-        res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
-        # Get the warping path and perform smoothing on this
-        stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
+        if not test:
+            res = dtwalign(stepSeqs[i][1][id,:], adjoint_reference,step_pattern="typeIVc")
+            # Get the warping path and perform smoothing on this
+            stepSeqs[i][1] = smoothSeq(stepSeqs[i][1][:,res.get_warping_path(target="query")], res.get_warping_path(target="query"))
     return np.array(stepSeqs)[:,1], lengthList
 
 # Reshape given Sequence list from [number of frames * 3, 15] to [45, number of frames]
