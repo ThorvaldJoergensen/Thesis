@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d as plt3d
 import matplotlib.animation as animation
 import numpy as np
 from matplotlib import cm
@@ -25,6 +24,7 @@ def animate(array, filepath=''):
     ax = fig.add_subplot(111, projection='3d')
     sct, = ax.plot([], [], [], "o", markersize=2)
 
+    ax.grid(False)
     # Update function to be called each frame
     def update(ifrm, xa, ya, za):
         # Clear all lines (except points)

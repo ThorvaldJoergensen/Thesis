@@ -1,7 +1,5 @@
 import numpy as np
-import glob, os, math
-import matplotlib.pyplot as plt
-from dtaidistance import dtw as dtw2
+import os
 from dtwalign import dtw as dtwalign
 
 #Create Synthethic graphs for DTW Alignement
@@ -225,12 +223,6 @@ def multiDTW(seqs, id, refSeq, test=True):
         for j, x in enumerate(finalFirst):
             temp = np.array(seqs[i][:])
             stepSeqs.append([i, temp[:,x:finalLast[j]]])
-            # fig = plt.figure()
-            # ax = plt.axes()
-            # ax.plot(temp[11,:],c="b", label="1")
-            # ax.scatter(finalFirst,np.full([len(finalFirst)],-33), c="g")
-            # ax.scatter(finalLast,np.full([len(finalLast)],-33), c="r")
-            # plt.show()
     
     # Get adjoint synthetic graph
     adjoint_reference = getSyntheticGraph(0)

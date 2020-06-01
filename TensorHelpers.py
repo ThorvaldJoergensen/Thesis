@@ -1,5 +1,4 @@
 import numpy as np
-from sktensor import dtensor
 from sktensor.tucker import hosvd
 import glob, os, math
 from scipy.io.matlab import loadmat

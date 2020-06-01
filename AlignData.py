@@ -1,7 +1,6 @@
 import numpy as np
-import sys, math
+import math
 from sktensor import dtensor
-sys.path.insert(1, '../Testing')
 
 # Align the data spatially using the procrustes analysis
 def spatial(data):

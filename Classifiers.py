@@ -3,18 +3,13 @@ import DTWHelpers
 from dtwalign import dtw
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 import pandas as pd
 import math
 from datetime import datetime
-import Plotting
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
 
 def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
-    #print("Starting alignment classifier")
     # Start timer and get synthetic graphs for each class
     start = datetime.now()
     runRef = DTWHelpers.getSyntheticGraph(5)
@@ -73,29 +68,6 @@ def alignment_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest):
             correct += 1
     end = datetime.now()
 
-    # print("Correct: ", correct)
-    # print("Wrong: ", wrong)
-    # print("Equal: ", equal)
-
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # # Plot the movement of the z coordinate of the right foot
-    # for i in range(0, int(len(run_runAligned))):
-    #     ax.plot(run_runAligned[i][11,:], c="b")
-    # for i in range(0, int(len(walk_runAligned))):
-    #     ax.plot(walk_runAligned[i][11,:], c="g")
-    # ax.plot(runRef, c="r")
-
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # # Plot the movement of the z coordinate of the right foot
-    # for i in range(0, int(len(run_walkAligned))):
-    #     ax.plot(run_walkAligned[i][11,:], c="b")
-    # for i in range(0, int(len(walk_walkAligned))):
-    #     ax.plot(walk_walkAligned[i][11,:], c="g")
-    # ax.plot(walkRef, c="r")
-    # plt.show()
-
     runtime = end - start
     return correct/len(predictedLabels), runtime
 
@@ -113,7 +85,6 @@ def angle(a,b,c):
     return np.degrees(Angle)
 
 def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngle=-1.0):
-    #print("Starting angle classifier")
     start = datetime.now()
     # Check if we are given a trained angle split, if we are we can test right away
     if not givenAngle == -1:
@@ -143,7 +114,6 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
                     walk_min = i[1]
         # Set the split to be halfway between the two outer values (running is lower than walking)
         splitAngle = run_max + ((walk_min - run_max) / 2)
-    # print("Split angle calculated as: ", splitAngle)
 
     
     maxAnglesTest = []
@@ -164,9 +134,7 @@ def angle_Classification(seqsTrain, seqsTest, labelsTrain, labelsTest, givenAngl
         elif i[1] > splitAngle and i[0] == [9]:
             correct += 1
 
-    #print("Angle Classifier Accuracy: ", correct/maxAnglesTest.shape[0])
     end = datetime.now()
-    #print("Runtime for angle classifier: ", end - start)
     runtime = end - start
     return correct/maxAnglesTest.shape[0], splitAngle, runtime
 
@@ -208,124 +176,6 @@ def getFoldSubList(foldList, labelList, index):
     label_list = [item for sublist in labelsToTrain for item in sublist]
     return seq_list, label_list
 
-def SVM_Classification_old(seqsTrain, seqsTest, labelsTrain, labelsTest):
-    import os
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-    #print("Starting SVM classifier")
-    start = datetime.now()
-    
-    batch_size = labelsTest.shape[0]
-    x_data = tf.placeholder(shape=[None, seqsTrain.shape[1]], dtype=tf.float32)
-    y_target = tf.placeholder(shape=[2, None], dtype=tf.float32)
-    prediction_grid = tf.placeholder(shape=[None, seqsTrain.shape[1]], dtype=tf.float32)
-    alpha = tf.Variable(tf.random_normal(shape=[2, batch_size]))
-
-    y_vals1 = np.array([1 if y==5 else -1 for y in labelsTrain])
-    y_vals2 = np.array([1 if y==9 else -1 for y in labelsTrain])
-    labelsTrain = np.array([y_vals1, y_vals2])
-    # labelsTrain = np.where(labelsTrain, 5, -1)
-    # labelsTrain = np.where(labelsTrain, -1, 1)
-
-    y_vals1 = np.array([1 if y==5 else -1 for y in labelsTest])
-    y_vals2 = np.array([1 if y==9 else -1 for y in labelsTest])
-    labelsTest = np.array([y_vals1, y_vals2])
-    # labelsTest = np.where(labelsTest, 5, -1)
-    # labelsTest = np.where(labelsTest, -1, 1)
-
-    
-    class1_idxs = np.flatnonzero(labelsTrain[0,:] == 1)
-    class1_x = seqsTrain[class1_idxs]
-    class1_r = labelsTrain[0, labelsTrain[0,:] == 1]
-    class2_idxs = np.flatnonzero(labelsTrain[1,:] == 1)
-    class2_x = seqsTrain[class2_idxs]
-    class2_r = labelsTrain[1, labelsTrain[1,:] == 1]
-
-    def reshape_matmul(mat, _size):
-        v1 = tf.expand_dims(mat, 1)
-        v2 = tf.reshape(v1, [2, _size, 1])
-        return tf.matmul(v2, v1)
-
-    # Gaussian (RBF) kernel
-    gamma = tf.constant(-.01)
-    dist = tf.reduce_sum(tf.square(x_data), 1)
-    dist = tf.reshape(dist, [-1,1])
-    sq_dist = tf.add(tf.subtract(dist, tf.multiply(2.0, tf.matmul(x_data, tf.transpose(x_data)))), tf.transpose(dist))
-    kernel = tf.exp(tf.multiply(gamma, sq_dist))
-
-    # Gaussian (RBF) prediction kernel
-    rA = tf.reshape(tf.reduce_sum(tf.square(x_data), 1), [-1,1])
-    rB = tf.reshape(tf.reduce_sum(tf.square(prediction_grid), 1),[-1,1])
-    pred_sq_dist = tf.add(tf.subtract(rA, tf.multiply(2., tf.matmul(x_data, tf.transpose(prediction_grid)))), tf.transpose(rB))
-    pred_kernel = tf.exp(tf.multiply(gamma, pred_sq_dist))
-
-    # Loss function
-    first_term = tf.reduce_sum(alpha)
-    b_vec_cross = tf.matmul(tf.transpose(alpha), alpha)
-    y_target_cross = reshape_matmul(y_target, batch_size)
-    second_term = tf.reduce_sum(tf.multiply(kernel, tf.multiply(b_vec_cross, y_target_cross)), [1, 2])
-    loss = tf.reduce_sum(tf.negative(tf.subtract(first_term, second_term)))
-
-    # Accuracy function
-    pred_output = tf.matmul(tf.multiply(y_target, alpha), pred_kernel)
-    prediction = tf.math.argmax(pred_output-tf.expand_dims(tf.reduce_mean(pred_output,1), 1), 0)
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction,tf.argmax(y_target,0)), tf.float32))
-
-    # Define optimizer and training step
-    optimizer = tf.train.GradientDescentOptimizer(0.001)
-    train_step = optimizer.minimize(loss)
-    
-    # Initialize variables
-    init = tf.global_variables_initializer()
-    sess = tf.Session()
-    sess.run(init)
-
-    # Setup arrays of accuracy and loss values.
-    loss_vec = []
-    batch_accuracy = []
-    test_accuracy = []
-    test_loss = []
-    np.random.seed(0) # set this for your experiments to compare the different kernels
-    for i in range(10000):
-        # Choose training points for current epoch
-        batch_index = np.random.choice(seqsTrain.shape[0], size=batch_size)
-        X = seqsTrain[batch_index]
-        Y = labelsTrain[:, batch_index]
-
-        # Run training step and get accuracy and loss values
-        sess.run(train_step, feed_dict={x_data: X, y_target: Y})
-        temp_loss = sess.run(loss, feed_dict={x_data: X, y_target: Y})
-        loss_vec.append(temp_loss)
-        acc_temp = sess.run(accuracy, feed_dict={x_data: X, y_target: Y, prediction_grid: X})
-        batch_accuracy.append(acc_temp)
-
-    # After training, run on test set.
-    temp_test_accuracy = sess.run(accuracy, feed_dict={x_data: seqsTest, y_target: labelsTest, prediction_grid: seqsTest})
-    #print ("SVM classifier accuracy: ", temp_test_accuracy)
-
-    end = datetime.now()
-    #print("Runtime for SVM classifier: ", end - start)
-    runtime = end - start
-
-    # fig = plt.figure(figsize=(13,4))
-
-    # # plot batch accuracy
-    # ax1 = fig.add_subplot(121)
-    # ax1.plot(batch_accuracy, color="black", linewidth=0.1)
-    # ax1.set_title("Accuracy per batch")
-    # ax1.set_xlabel("Batch")
-    # ax1.set_ylabel("Accuracy")
-
-    # # plot loss over time
-    # ax2 = fig.add_subplot(122)
-    # ax2.plot(loss_vec, color="black", linewidth=0.1)
-    # ax2.set_title("Loss per batch")
-    # ax2.set_xlabel("Batch")
-    # ax2.set_ylabel("Loss")
-
-    # plt.show()
-    return temp_test_accuracy, runtime
-
-
 def SVM_Classification(X_train, X_test, Y_train, Y_test):
     start = datetime.now()
 
@@ -349,37 +199,24 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
 
     from sklearn.model_selection import GridSearchCV
 
-    params_grid = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000, 10000]},
-                        {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
-                        {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
-                        {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
+    params_grid = [ {'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000, 10000]},
+                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]},
+                    {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
+                    {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
   
     svm_model = GridSearchCV(SVC(), params_grid, cv=5, iid=False)
     svm_model.fit(X_train_scaled, Y_train.ravel())
 
-    # View the best parameters for the model found using grid search
-    # print('Best C:',svm_model.best_estimator_.C,"\n") 
-    # print('Best Kernel:',svm_model.best_estimator_.kernel,"\n")
-    # print('Best degree:',svm_model.best_estimator_.degree,"\n")
-    # print('Best Gamma:',svm_model.best_estimator_.gamma,"\n")
-
-    final_model = svm_model.best_estimator_
-    Y_pred = final_model.predict(X_test_scaled)
+    best_model = svm_model.best_estimator_
+    Y_pred = best_model.predict(X_test_scaled)
     Y_pred_label = list(encoder.inverse_transform(Y_pred))
 
-    # print(confusion_matrix(Y_test,Y_pred_label))
-    # print("\n")
-    # print(classification_report(Y_test,Y_pred_label))
-
-    # print("Training set score for SVM: %f" % final_model.score(X_train_scaled , Y_train))
-    # print("Testing  set score for SVM: %f" % final_model.score(X_test_scaled  , Y_test ))
     end = datetime.now()
-    return final_model.score(X_test_scaled, Y_test), (end-start)
+    return best_model.score(X_test_scaled, Y_test), (end-start)
 
 def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-1, change=-1, it = 50):
     WalkTest = []
     RunTest = []
-    # print("Parameters: ", less_than, change, it)
     # Split into running and walking
     for x in np.where(label_list[:,0]==5)[0].tolist():
         RunTest.append(seq_list[x])
@@ -427,12 +264,17 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
             iteration = 0
             
             approximation_Errors = []
+            approximation_Errors2 = []
             prev_U2 = u2_hat
             prev_U3 = U3_hat
             start_U2 = u2_hat
             start_U3 = U3_hat
             last_approx = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
             for j in range (0,it): # Run for the spefcified number of iterations
+                appr_error = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
+                previous_f_hat = f_hatU2(u2_hat,U3_hat)
+
+                approximation_Errors.append(math.log(appr_error))
                 if not less_than == -1: # If Less_than has been set, then stop approximating the current sequence once the approximation error goes below less_than
                     if approximation_Error(f_hatU2(u2_hat,U3_hat),seq) <= less_than:
                         break
@@ -480,24 +322,13 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
 
                 end = datetime.now()
                 errors.append(0.5 * np.abs(np.linalg.norm(f_hatU2(u2_hat,U3_hat) - seq))**2)
+                approximation_Errors2.append(approximation_Error(f_hatU2(u2_hat,U3_hat), seq)/approximation_Error(previous_f_hat, seq))
                 U2_list.append(u2_hat)
-                appr_error = approximation_Error(f_hatU2(u2_hat,U3_hat),seq)
-
-                approximation_Errors.append(appr_error)
                 prev_U2 = u2_hat
                 prev_U3 = U3_hat
                 
-            # if iteration > 1:
-            #     fig = plt.figure()
-            #     ax = plt.axes()
-            #     ax.set_xlabel('Iterations')
-            #     ax.set_ylabel('Error')
-            #     fig.suptitle("Approximation error")
-            #     ax.plot(approximation_Errors)
-            #     plt.show()
-            # print("Final Approximation error: ",appr_error)
             U2_Estimates.append(u2_hat)
-            # Use the below code to animate the estimated sequence
+            # Use the below code to animate the estimated sequence, change -1 to id of sequence to animate
             if g == -1:
                 newMatrix2 = np.tensordot(core_S_U1, u2_hat, (0,0))
                 newMatrix = np.tensordot(newMatrix2,U3_hat,(0,1))
@@ -559,10 +390,6 @@ def U2_approximation(seq_list, label_list,tensor, core_S_U1, U2, U3, less_than=-
                 # Run animation with the update function and point lists
                 ani = animation.FuncAnimation(fig, update, FirstFrameModel.shape[1], fargs=(xs,ys,zs), interval=200)
                 plt.show()
-                # fig = plt.figure()
-                # ax = plt.axes()
-                # ax.plot(seq[11,:])
-                # plt.show()
 
                 # Testing
                 newMatrix2 = np.tensordot(core_S_U1, u2_hat, (0,0))

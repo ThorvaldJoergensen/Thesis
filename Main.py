@@ -1,5 +1,4 @@
 import numpy as np
-import numpy.matlib
 import sys
 from scipy.io.matlab import loadmat
 from sktensor import dtensor
@@ -14,15 +13,9 @@ import Classifiers
 
 import pandas as pd
 
-from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
-from skimage import measure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import matplotlib.patches as mpatches
-import matplotlib
 
-import scipy.optimize as opti
 from datetime import datetime
 
 # Load the data
@@ -70,45 +63,6 @@ subSeqList = AlignData.spatial(subSeqList)
 # Reshape the data to 45, number of frames
 subSeqList = DTWHelpers.reshapeTo45(subSeqList)
 
-# Plot synthetic graphs
-# fig = plt.figure()
-# plt.plot(DTWHelpers.getSyntheticGraph(5), c='b', label='Synthetic run')
-# plt.plot(DTWHelpers.getSyntheticGraph(9), c='g', label='Synthetic walk')
-# plt.plot(DTWHelpers.getSyntheticGraph(0), c='r', label='Synthetic mixture')
-# plt.legend()
-# plt.show()
-
-# Plot two timeseries of different classes
-# fig = plt.figure()
-# ax = plt.axes()
-# ax.plot(subSeqList[6][11][:],c="b", label="Run")
-# ax.plot(subSeqList[63][11][:],c="r", label="Walk")
-# plt.legend()
-# plt.show()
-
-# finalFirst, finalLast = DTWHelpers.findSteps(subSeqList[63][11][:])
-# finalFirstY = []
-# finalLastY = []
-# for x in finalFirst:
-#     finalFirstY = subSeqList[63][11][x]
-# for x in finalLast:
-#     finalLastY = subSeqList[63][11][x]
-# fig = plt.figure()
-# ax = plt.axes()
-# ax.plot(subSeqList[63][11][:],c="b", label="Walk")
-# for i, x in enumerate(finalFirst):
-#     if i == 0:
-#         ax.axvline(x, c="g", label='Start of step')
-#     else:
-#         ax.axvline(x, c="g")
-# for i, x in enumerate(finalLast):
-#     if i == 0:
-#         ax.axvline(x, c="r", label='End of step')
-#     else:
-#         ax.axvline(x, c="r")
-# plt.legend(loc='upper right')
-# plt.show()
-
 angle_accuracy = []
 angle_runtime = []
 alignment_accuracy = []
@@ -116,7 +70,8 @@ alignment_runtime = []
 svm_accuracy = []
 svm_runtime = []
 
-iterations = 100
+# Change number of iterations to be run
+iterations = 1
 for u in range (1,iterations+1):
     print("Starting iteration: ", u)
     # Split data into 80% training and 20% testing
@@ -208,14 +163,6 @@ for u in range (1,iterations+1):
     # Find the median length of the steps
     medianLength = np.median(Lengths)-1
 
-    # Plot the movement of the z coordinate of the right foot
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # for i in range(0, int(len(action_steps))):
-    #     for x in range(0,int(len(action_steps[i]))):
-    #         ax.plot(action_steps[i][x][11][:])
-
-
     tensorList = []
     for i in range(0,len(action_steps)):
         for x in range(0,len(action_steps[i])):
@@ -247,12 +194,6 @@ for u in range (1,iterations+1):
         for x in range(0,nrPerAction[i][1]):
             labelsSVM.append([nrPerAction[i][0]])
     labelsSVM = np.array(labelsSVM)
-
-    # Plot the new U matrices
-    # Plotting.plotU1(U1)
-    # Plotting.plotU2(U2, labelsSVM, action_names)
-    # Plotting.plotU3(U3)
-    # plt.show()
 
     new_action_names = []
     for i, action in enumerate(action_names):
@@ -290,15 +231,6 @@ for u in range (1,iterations+1):
                 elif Estimates_Label_list[j][i] == 9:
                     newU2 = np.vstack((newU2, x.reshape(1,U2.shape[1])))
                     newLabels = np.vstack((newLabels, [14]))
-
-            # Plotting.plotU2(newU2, newLabels,np.append(np.append(new_action_names, 'run estimate'),'walk estimate'))
-            # Plotting.plotU2(U2, labelsSVM,new_action_names)
-            # Use below for showing errors in report
-            # fig = plt.figure()
-            # ax = plt.axes()
-            # ax.plot(errors)
-            plt.show()
-
             print("Starting Training of SVM Model")
             
             # Run the SVM classifier on the estimated test set
