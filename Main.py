@@ -71,7 +71,7 @@ svm_accuracy = []
 svm_runtime = []
 
 # Change number of iterations to be run
-iterations = 1
+iterations = 10
 for u in range (1,iterations+1):
     print("Starting iteration: ", u)
     # Split data into 80% training and 20% testing
