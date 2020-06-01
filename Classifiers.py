@@ -204,7 +204,7 @@ def SVM_Classification(X_train, X_test, Y_train, Y_test):
                     {'kernel': ['poly'], 'C': [1, 10, 100, 1000, 10000], 'degree' : [1, 2, 3, 5, 10], 'gamma': [1e-3, 1e-4]},
                     {'kernel': ['sigmoid'], 'C': [1, 10, 100, 1000, 10000], 'gamma': [1e-3, 1e-4]}]
   
-    svm_model = GridSearchCV(SVC(), params_grid, cv=5, iid=False)
+    svm_model = GridSearchCV(SVC(), params_grid, cv=5)
     svm_model.fit(X_train_scaled, Y_train.ravel())
 
     best_model = svm_model.best_estimator_
